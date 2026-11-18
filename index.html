@@ -1,0 +1,2017 @@
+<!DOCTYPE html>
+<html lang="es" class="antialiased dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEFROTRON 3000 Raptor HEMI V8</title>
+
+    <!-- Librerías Externas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Fuentes e Iconos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    },
+                    colors: {
+                        ios: {
+                            bg: '#F2F2F7',
+                            bgDark: '#000000',
+                            card: 'rgba(255, 255, 255, 0.72)',
+                            cardDark: 'rgba(28, 28, 30, 0.72)',
+                            blue: '#007AFF',
+                            green: '#34C759',
+                            separator: 'rgba(60, 60, 67, 0.36)',
+                            separatorDark: 'rgba(84, 84, 88, 0.65)'
+                        }
+                    },
+                    boxShadow: {
+                        glass: '0 8px 32px 0 rgba(31, 38, 135, 0.07)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* ============================================================
+           BACKGROUND: MicroSlats (React Bits)
+           ============================================================ */
+        .micro-slats {
+            position: fixed; inset: 0; width: 100vw; height: 100vh;
+            overflow: hidden; z-index: -1; pointer-events: none;
+            background: #000000; transition: background-color 0.4s ease;
+        }
+        html:not(.dark) .micro-slats { background: #F2F2F7; }
+        .micro-slats canvas { display: block; width: 100%; height: 100%; }
+
+        /* ============================================================
+           GLASS
+           ============================================================ */
+        body { background-color: transparent; color: #1D1D1F; transition: color 0.4s ease; }
+        .dark body { background-color: transparent; color: #F5F5F7; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .dark .glass-panel {
+            background: rgba(30, 30, 30, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .ios-input { background: rgba(118, 118, 128, 0.12); border: none; color: inherit; transition: all 0.2s; }
+        .ios-input:focus { background: rgba(118, 118, 128, 0.24); outline: none; box-shadow: 0 0 0 2px #007AFF; }
+        .dark .ios-input { background: rgba(118, 118, 128, 0.24); }
+        .dark .ios-input:focus { background: rgba(118, 118, 128, 0.36); }
+
+        .btn-primary { background: #007AFF; color: white; box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3); }
+        .btn-primary:hover { background: #0062CC; }
+        .btn-primary:active { transform: scale(0.98); }
+        .btn-primary:disabled { background: #A0A0A0; opacity: 0.5; box-shadow: none; cursor: not-allowed; }
+
+        .btn-secondary { background: rgba(118, 118, 128, 0.12); color: #007AFF; }
+        .dark .btn-secondary { background: rgba(118, 118, 128, 0.24); color: #0A84FF; }
+        .btn-secondary:hover { opacity: 0.8; }
+
+        /* Botón Descargar Diálisis: parpadeo suave tipo intermitente Mazda (encendido y apagado con fundido) */
+        @keyframes blinkerMazda {
+            0%, 100% { background-color: #15803d; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+            12%      { background-color: #22c55e; box-shadow: 0 0 18px 4px rgba(34, 197, 94, 0.65); }
+            40%      { background-color: #22c55e; box-shadow: 0 0 14px 2px rgba(34, 197, 94, 0.45); }
+            60%      { background-color: #15803d; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .btn-blinker { color: #fff; background-color: #15803d; animation: blinkerMazda 1.2s ease-in-out infinite; }
+        .btn-blinker:hover { animation-play-state: paused; background-color: #16a34a; }
+        @media (prefers-reduced-motion: reduce) { .btn-blinker { animation: none; background-color: #16a34a; } }
+
+        .segmented-control { background: rgba(118, 118, 128, 0.12); padding: 2px; border-radius: 8px; display: inline-flex; }
+        .dark .segmented-control { background: rgba(118, 118, 128, 0.24); }
+        .segment-btn { padding: 4px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: inherit; transition: all 0.2s; }
+        .segment-btn.active { background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.12); color: black; }
+        .dark .segment-btn.active { background: #636366; color: white; }
+
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(120, 120, 120, 0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+    </style>
+</head>
+<body class="selection:bg-blue-500 selection:text-white">
+
+    <div id="microSlatsBg" class="micro-slats" aria-hidden="true"></div>
+
+    <!-- ============================================================
+         HEADER
+         ============================================================ -->
+    <header class="text-center mb-10 w-full animate-slide-up relative pt-10 px-4 max-w-7xl mx-auto">
+        <div class="absolute top-4 right-4 md:right-8 flex items-center gap-2">
+            <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-full bg-gray-200/50 dark:bg-gray-700/50 flex items-center justify-center transition-colors hover:bg-gray-300/50 dark:hover:bg-gray-600/50">
+                <span id="themeIcon" class="material-symbols-rounded text-lg">light_mode</span>
+            </button>
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+            <button onclick="resetApp()" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors">
+                <span class="material-symbols-rounded text-lg">restart_alt</span>
+                <span class="hidden sm:inline">Limpiar</span>
+            </button>
+        </div>
+
+        <div class="inline-flex items-center justify-center w-20 h-20 bg-black dark:bg-white rounded-3xl shadow-2xl mb-6 transition-colors duration-500">
+            <span class="material-symbols-rounded text-white dark:text-black text-4xl">sports_esports</span>
+        </div>
+
+        <h1 class="text-3xl font-bold tracking-tight mb-3">
+            <span id="titlePart1">NEFROTRON 3000</span>
+            <span id="titlePart2" style="color: #dc2626;">Raptor HEMI V8</span>
+        </h1>
+        <p class="text-lg text-slate-500 dark:text-slate-400 font-medium mb-1">TM. Kevin Garay Marín</p>
+        <p id="appVersion" class="text-base text-slate-500 dark:text-slate-400 font-normal">v4.2 (Validación de formato)</p>
+    </header>
+
+    <!-- ============================================================
+         MAIN
+         ============================================================ -->
+    <main class="pb-12 px-4 max-w-7xl mx-auto w-full space-y-8">
+        
+        <!-- UPLOAD SECTION -->
+        <section id="uploadSection" class="glass-panel rounded-3xl p-6 md:p-8 fade-in">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="material-symbols-rounded text-blue-500 text-3xl">upload_file</span>
+                <h2 class="text-xl font-semibold">Carga de Datos</h2>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 group">
+                    <div id="dropZone" class="relative h-64 rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center cursor-pointer transition-all hover:border-blue-500 hover:bg-blue-50/10 dark:hover:bg-blue-900/10">
+                        <input type="file" id="fileInput" accept=".xlsx, .xls, .csv" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(event)">
+                        <div id="uploadPrompt" class="text-center space-y-3 pointer-events-none transition-opacity">
+                            <div class="w-16 h-16 mx-auto bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center text-blue-500">
+                                <span class="material-symbols-rounded text-4xl">cloud_upload</span>
+                            </div>
+                            <div>
+                                <p class="font-medium text-lg">Arrastra tu Excel aquí</p>
+                                <p class="text-sm text-gray-400">Revisar al cargar</p>
+                            </div>
+                        </div>
+                        <div id="fileInfo" class="hidden text-center space-y-4 pointer-events-none z-20">
+                            <div class="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center text-green-500">
+                                <span class="material-symbols-rounded text-4xl">check</span>
+                            </div>
+                            <div>
+                                <p id="fileName" class="font-bold text-lg max-w-xs truncate mx-auto">archivo.xlsx</p>
+                                <p id="sheetLabel" class="text-sm text-green-600 dark:text-green-400 font-extrabold uppercase">Listo para procesar</p>
+                                <p id="sheetHint" class="text-xs text-gray-500 dark:text-gray-400"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel bg-white/50 dark:bg-gray-800/50 rounded-2xl p-6 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div id="sheetSelectWrap" class="space-y-1.5 hidden">
+                            <label class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 ml-1">Hoja del Excel</label>
+                            <div class="relative">
+                                <select id="sheetSelect" onchange="loadSheet(this.value)" class="ios-input w-full p-3 rounded-xl appearance-none font-bold cursor-pointer"></select>
+                                <span class="material-symbols-rounded absolute right-3 top-3.5 text-gray-400 pointer-events-none">expand_more</span>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 ml-1">Mes de Proceso</label>
+                            <div class="relative">
+                                <select id="monthSelect" class="ios-input w-full p-3 rounded-xl appearance-none font-medium cursor-pointer">
+                                    <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option><option value="3">Abril</option><option value="4">Mayo</option><option value="5">Junio</option><option value="6">Julio</option><option value="7">Agosto</option><option value="8">Septiembre</option><option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
+                                </select>
+                                <span class="material-symbols-rounded absolute right-3 top-3.5 text-gray-400 pointer-events-none">expand_more</span>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 ml-1">Año</label>
+                            <input type="number" id="yearInput" value="2026" class="ios-input w-full p-3 rounded-xl font-medium">
+                        </div>
+                    </div>
+                    <button id="processBtn" disabled onclick="processData()" class="mt-6 w-full btn-primary py-3.5 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
+                        <span class="material-symbols-rounded">settings_motion_mode</span> Procesar
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- RESULTS SECTION -->
+        <section id="outputSection" class="hidden space-y-6 fade-in">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-panel p-5 rounded-2xl flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400">
+                        <span class="material-symbols-rounded text-2xl">calendar_month</span>
+                    </div>
+                    <div><p class="text-xs font-bold text-gray-500 uppercase">Periodo</p><p id="statMonth" class="text-lg font-bold">-</p></div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <span class="material-symbols-rounded text-2xl">person</span>
+                    </div>
+                    <div><p class="text-xs font-bold text-gray-500 uppercase">Pacientes</p><p id="statPatients" class="text-2xl font-bold">0</p></div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400">
+                        <span class="material-symbols-rounded text-2xl">dataset</span>
+                    </div>
+                    <div><p class="text-xs font-bold text-gray-500 uppercase">Registros</p><p id="statRecords" class="text-2xl font-bold">0</p></div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden">
+                    <div class="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 z-10">
+                        <span class="material-symbols-rounded text-2xl">assignment_ind</span>
+                    </div>
+                    <div class="z-10 flex-1">
+                        <p class="text-xs font-bold text-gray-500 uppercase">Reg. x Codif.</p>
+                        <div class="flex items-baseline justify-between">
+                            <p id="statPerCoder" class="text-2xl font-bold">0</p>
+                            <button onclick="toggleCoderEdit()" class="text-blue-500 hover:text-blue-600 transition-colors"><span class="material-symbols-rounded text-sm">edit</span></button>
+                        </div>
+                        <div id="coderEditMode" class="hidden absolute inset-0 bg-white/90 dark:bg-black/90 flex items-center justify-between px-4 z-20 backdrop-blur-sm">
+                            <span class="text-xs font-bold">Codificadores:</span>
+                            <div class="flex gap-2">
+                                <input type="number" id="coderInput" value="3" min="1" class="w-12 p-1 text-sm rounded border border-gray-300 dark:border-gray-600 bg-transparent text-center">
+                                <button onclick="saveCoderCount()" class="text-xs bg-blue-500 text-white px-2 py-1 rounded">OK</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABS & TABLES -->
+            <div class="glass-panel rounded-3xl overflow-hidden min-h-[600px] flex flex-col">
+                <div class="flex border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 px-6 pt-4 gap-6 overflow-x-auto">
+                    <button id="tabBtnCarga" onclick="switchTab('carga')" class="pb-3 border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold text-sm transition-colors whitespace-nowrap">Hoja CARGA</button>
+                    <button id="tabBtnPctes" onclick="switchTab('pctes')" class="pb-3 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium text-sm transition-colors whitespace-nowrap">Hoja PCTES</button>
+                    <button id="tabBtnDup" onclick="switchTab('dup')" class="pb-3 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium text-sm transition-colors whitespace-nowrap">Duplicadas / Omitidas <span id="dupBadge" class="ml-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full text-[10px] font-bold">0</span></button>
+                </div>
+
+                <!-- CARGA -->
+                <div id="tabCarga" class="flex-1 p-6 flex flex-col">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full border border-green-100 dark:border-green-800/30">
+                            <span class="material-symbols-rounded text-base">check_circle</span>
+                            <span class="font-medium">Datos listos para exportar</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="generateDialysisPDF()" class="btn-secondary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                                <span class="material-symbols-rounded">picture_as_pdf</span> PDF
+                            </button>
+                            <button onclick="downloadFile('carga', 'csv')" class="btn-secondary px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                                <span class="material-symbols-rounded">csv</span> CSV
+                            </button>
+                            <button onclick="downloadFile('carga', 'txt')" class="btn-blinker px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+                                <span class="material-symbols-rounded">save</span> Descargar Diálisis
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white/40 dark:bg-black/20">
+                        <div class="overflow-auto max-h-[500px]">
+                            <table class="w-full text-xs text-left whitespace-nowrap">
+                                <thead class="bg-gray-50/90 dark:bg-gray-800/90 sticky top-0 backdrop-blur-sm z-10"><tr id="cargaHead"></tr></thead>
+                                <tbody id="cargaBody" class="divide-y divide-gray-100 dark:divide-gray-800 font-mono text-gray-600 dark:text-gray-400"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PCTES -->
+                <div id="tabPctes" class="hidden flex-1 p-6 flex flex-col">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                        <div class="flex items-center gap-3 bg-gray-100 dark:bg-gray-800/50 p-1 rounded-lg">
+                            <div class="segmented-control">
+                                <button id="btnViewList" onclick="setPctesView('list')" class="segment-btn active flex items-center gap-1"><span class="material-symbols-rounded text-base">view_list</span> Listado</button>
+                                <button id="btnViewGrid" onclick="setPctesView('grid')" class="segment-btn flex items-center gap-1"><span class="material-symbols-rounded text-base">grid_view</span> Mosaico</button>
+                            </div>
+                            <div class="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
+                            <div class="relative group">
+                                <select id="sortSelect" onchange="sortPctes()" class="appearance-none bg-transparent pl-2 pr-6 py-1 text-xs font-medium cursor-pointer focus:outline-none text-gray-600 dark:text-gray-300">
+                                    <option value="default">Orden: Excel</option><option value="desc">Sesiones: Mayor a menor</option><option value="asc">Sesiones: Menor a mayor</option>
+                                </select>
+                                <span class="material-symbols-rounded absolute right-0 top-1 text-base pointer-events-none text-gray-400">sort</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="downloadFile('pctes', 'csv')" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"><span class="material-symbols-rounded text-sm">download</span> CSV</button>
+                            <button onclick="downloadFile('pctes', 'txt')" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"><span class="material-symbols-rounded text-sm">description</span> TXT</button>
+                        </div>
+                    </div>
+                    <div id="pctesContainer" class="flex-1 overflow-y-auto max-h-[600px] pr-2 scroll-smooth"></div>
+                </div>
+
+                <!-- DUPLICADAS -->
+                <div id="tabDup" class="hidden flex-1 p-6 flex flex-col">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                        <p id="dupSummary" class="text-sm text-gray-600 dark:text-gray-300"></p>
+                        <button onclick="downloadDuplicados()" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"><span class="material-symbols-rounded text-sm">download</span> CSV</button>
+                    </div>
+                    <div class="flex-1 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-white/40 dark:bg-black/20">
+                        <div class="overflow-auto max-h-[500px]">
+                            <table class="w-full text-xs text-left whitespace-nowrap">
+                                <thead class="bg-gray-50/90 dark:bg-gray-800/90 sticky top-0 backdrop-blur-sm z-10"><tr>
+                                    <th class="px-4 py-3 font-semibold text-gray-500">Fila Excel</th><th class="px-4 py-3 font-semibold text-gray-500">Ficha</th><th class="px-4 py-3 font-semibold text-gray-500">RUT</th><th class="px-4 py-3 font-semibold text-gray-500">Nombre</th><th class="px-4 py-3 font-semibold text-gray-500">Día</th><th class="px-4 py-3 font-semibold text-gray-500">Motivo</th>
+                                </tr></thead>
+                                <tbody id="dupBody" class="divide-y divide-gray-100 dark:divide-gray-800 font-mono text-gray-600 dark:text-gray-400"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center py-6 border-t border-gray-200 dark:border-gray-800 mt-auto bg-white/50 dark:bg-black/50 backdrop-blur-md">
+        <p class="text-xs font-semibold text-gray-500">© 2026 Procesador Diálisis, TM. Kevin : Estas como loquita Sape Sapeeee !</p>
+    </footer>
+
+    <!-- SECRET TITLE EDITOR -->
+    <div id="titleEditorModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeTitleEditor()"></div>
+        <div class="relative glass-panel rounded-2xl p-6 w-full max-w-md shadow-2xl bg-white dark:bg-gray-900">
+            <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><span class="material-symbols-rounded text-yellow-500">construction</span> Configuración Secreta</h3>
+            <div class="space-y-4">
+                <div><label class="block text-xs font-bold text-gray-500 mb-1">Parte 1</label><input type="text" id="editTitle1" class="ios-input w-full p-2 rounded-lg font-bold"></div>
+                <div class="flex gap-2">
+                    <div class="flex-1"><label class="block text-xs font-bold text-gray-500 mb-1">Parte 2</label><input type="text" id="editTitle2" class="ios-input w-full p-2 rounded-lg font-bold"></div>
+                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Color</label><input type="color" id="editColor2" class="h-9 w-full rounded cursor-pointer"></div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeTitleEditor()" class="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">Cerrar</button>
+                <button onclick="saveTitleChanges()" class="px-4 py-2 text-sm font-bold text-white bg-blue-500 hover:bg-blue-600 rounded-lg shadow-lg transition-colors">Guardar Todo</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let globalRawRows = [];
+    let globalPCTES = [];
+    let globalCARGA = [];
+    let globalWorkbook = null;
+    let globalSheetName = '';
+    let globalOmitidas = [];
+    const NOTA_DIALISIS = '[Diálisis]';
+    const APP_VERSION = 'v4.2'; // subir en cada versión nueva del HTML
+    let globalHeaderRow = 1;
+    let globalCoders = 3;
+    let currentPctesView = 'list';
+    let currentSort = 'default';
+
+    const IDENTITY_DEFAULTS = { PAIS_CHILE: "152", PAIS_DESCONOCIDO: "999", TIPO_CIP_RUN: "1", TIPO_CIP_PROVISORIO: "5" };
+    const COL = { NOMBRE: 1, APATERNO: 2, AMATERNO: 3, RUT: 4, FICHA: 5, FNAC: 6, PREVISION: 8, DG: 9, MORBID: 10, HORARIO: 12, DIAS_START: 13 };
+
+    let keyBuffer = '';
+    const SECRET_CODE = '17867231';
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { if (keyBuffer.endsWith(SECRET_CODE)) openTitleEditor(); keyBuffer = ''; } 
+        else { keyBuffer += e.key; if (keyBuffer.length > 20) keyBuffer = keyBuffer.slice(-20); }
+    });
+
+    function openTitleEditor() {
+        document.getElementById('editTitle1').value = document.getElementById('titlePart1').innerText;
+        document.getElementById('editTitle2').value = document.getElementById('titlePart2').innerText;
+        const inlineColor = document.getElementById('titlePart2').style.color;
+        document.getElementById('editColor2').value = inlineColor ? rgbToHex(inlineColor) : '#dc2626';
+        document.getElementById('titleEditorModal').classList.remove('hidden');
+    }
+    function closeTitleEditor() { document.getElementById('titleEditorModal').classList.add('hidden'); }
+    function saveTitleChanges() {
+        document.getElementById('titlePart1').innerText = document.getElementById('editTitle1').value;
+        const t2 = document.getElementById('titlePart2');
+        t2.innerText = document.getElementById('editTitle2').value;
+        t2.style.color = document.getElementById('editColor2').value;
+        closeTitleEditor();
+    }
+    function rgbToHex(col) {
+        if (col.charAt(0) === '#') return col;
+        const rgb = col.match(/\d+/g);
+        if (!rgb) return '#000000';
+        return '#' + ((1 << 24) + (parseInt(rgb[0]) << 16) + (parseInt(rgb[1]) << 8) + parseInt(rgb[2])).toString(16).slice(1);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { setDefaultDate(); document.getElementById('appVersion').innerText = `${APP_VERSION} (Validación de formato)`; });
+
+    const configPDF = { titleSize: 9, subtitleSize: 7, metaSize: 6, tableHeaderSize: 7, tableBodySize: 6, footerSize: 5 };
+
+    function setDefaultDate() {
+        const now = new Date();
+        const processDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        document.getElementById('monthSelect').value = processDate.getMonth();
+        document.getElementById('yearInput').value = processDate.getFullYear();
+    }
+
+    function toggleDarkMode() {
+        document.documentElement.classList.toggle('dark');
+        if (window.nefroBg) window.nefroBg.update({ backgroundColor: document.documentElement.classList.contains('dark') ? '#000000' : '#F2F2F7' });
+        document.getElementById('themeIcon').textContent = document.documentElement.classList.contains('dark') ? 'light_mode' : 'dark_mode';
+    }
+
+    function resetApp() {
+        globalRawRows = []; globalPCTES = []; globalCARGA = []; globalCoders = 3; globalWorkbook = null; globalSheetName = ''; globalOmitidas = []; globalHeaderRow = 1;
+        document.getElementById('sheetSelectWrap').classList.add('hidden');
+        document.getElementById('fileInput').value = '';
+        setDefaultDate();
+        document.getElementById('uploadPrompt').classList.remove('hidden');
+        document.getElementById('fileInfo').classList.add('hidden');
+        document.getElementById('fileInfo').classList.remove('fade-in');
+        document.getElementById('processBtn').disabled = true;
+        document.getElementById('outputSection').classList.add('hidden');
+        document.getElementById('uploadSection').classList.remove('hidden');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function switchTab(tab) {
+        const tabs = { carga: ['tabCarga', 'tabBtnCarga'], pctes: ['tabPctes', 'tabBtnPctes'], dup: ['tabDup', 'tabBtnDup'] };
+        const ACT = "pb-3 border-b-2 border-blue-500 text-blue-600 dark:text-blue-400 font-semibold text-sm transition-colors whitespace-nowrap";
+        const INACT = "pb-3 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium text-sm transition-colors whitespace-nowrap";
+        Object.entries(tabs).forEach(([k, [panel, btn]]) => {
+            document.getElementById(panel).classList.toggle('hidden', k !== tab);
+            document.getElementById(btn).className = k === tab ? ACT : INACT;
+        });
+    }
+
+    function processData() {
+        if (!globalRawRows.length) return alert("Por favor, carga un archivo Excel primero.");
+        const mIdx = parseInt(document.getElementById('monthSelect').value);
+        const y = parseInt(document.getElementById('yearInput').value);
+
+        try {
+            globalPCTES = transformUDIALtoPCTES(globalRawRows, y, mIdx);
+            globalCARGA = generateCARGA(globalPCTES, y, mIdx);
+            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            document.getElementById('statMonth').innerText = `${months[mIdx]} ${y}`;
+            updateStats();
+            renderCargaTable();
+            renderPctesContent();
+            renderDuplicados();
+            const out = document.getElementById('outputSection');
+            out.classList.remove('hidden');
+            setTimeout(() => out.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+        } catch (e) {
+            console.error(e);
+            alert("⚠️ REVISIÓN INMEDIATA ⚠️\n\nTransformación detenida.\n\n" + e.message);
+        }
+    }
+
+    function normalizarTextoIdentidad(valor) {
+        return String(valor == null ? "" : valor).trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function normalizarRut(valor) {
+        return String(valor == null ? "" : valor).trim().toUpperCase().replace(/[\s\.]/g, "");
+    }
+
+    function analizarRutChileno(valor) {
+        const original = String(valor == null ? "" : valor).trim();
+        let docLimpio = original.toUpperCase().replace(/[\s\.]/g, "");
+        
+        const resultado = {
+            original, limpio: docLimpio, presente: docLimpio !== "" && docLimpio !== "-",
+            formatoValido: false, matematicamenteValido: false, esProvisorio: false,
+            tipoDocumento: "", dvEsperado: "", motivo: ""
+        };
+
+        if (!resultado.presente) {
+            resultado.tipoDocumento = "INDOCUMENTADO";
+            resultado.motivo = "Sin número de documento";
+            return resultado;
+        }
+
+        // --- VERIFICACIÓN DE FORMATO ESTRICTO DE RUT ---
+        if (/^\d{5,9}-[0-9K]$/.test(docLimpio)) {
+            resultado.formatoValido = true;
+            const partes = docLimpio.split("-");
+            const cuerpo = partes[0];
+            const dv = partes[1];
+            const numCuerpo = parseInt(cuerpo, 10);
+
+            if (numCuerpo === 0) {
+                resultado.tipoDocumento = "OTRO";
+                resultado.motivo = "RUT 0-0 no válido";
+                return resultado;
+            }
+
+            // --- DETECCIÓN DE RUT PROVISORIO 40M A 50M ---
+            if (numCuerpo >= 40000000 && numCuerpo <= 50999999) {
+                resultado.esProvisorio = true;
+            }
+
+            // --- ALGORITMO MATEMÁTICO MÓDULO 11 ---
+            let suma = 0;
+            let multiplo = 2;
+            for (let i = 1; i <= cuerpo.length; i++) {
+                suma += multiplo * parseInt(cuerpo.charAt(cuerpo.length - i), 10);
+                multiplo = multiplo < 7 ? multiplo + 1 : 2;
+            }
+            const dvEsperado = 11 - (suma % 11);
+            const dvCalculado = (dvEsperado === 11) ? '0' : (dvEsperado === 10) ? 'K' : dvEsperado.toString();
+
+            resultado.dvEsperado = dvCalculado;
+            resultado.matematicamenteValido = (dv === dvCalculado);
+
+            if (resultado.esProvisorio) {
+                resultado.tipoDocumento = "RUT PROVISORIO FONASA";
+                resultado.motivo = resultado.matematicamenteValido ? "RUT provisorio con DV coherente" : "RUT provisorio con DV no coherente";
+            } else if (resultado.matematicamenteValido) {
+                resultado.tipoDocumento = "RUN";
+                resultado.motivo = "RUT chileno matemáticamente válido";
+            } else {
+                resultado.tipoDocumento = "RUN";
+                resultado.motivo = "RUT chileno con DV no coherente";
+            }
+        } else {
+            resultado.tipoDocumento = "OTRO";
+            resultado.motivo = "Formato no compatible con RUT chileno";
+        }
+
+        return resultado;
+    }
+
+    function detectarColumnasIdentidad(rows) {
+        const aliases = {
+            tipoDocumento: ["TIPO DOCUMENTO", "TIPO DE DOCUMENTO", "TIPO DOC", "DOCUMENT TYPE", "TIPO_IDENTIFICACION", "TIPO IDENTIFICACION"],
+            nacionalidad: ["NACIONALIDAD", "NATIONALITY", "PAIS", "PAIS DE NACIONALIDAD", "PAIS NACIONALIDAD", "CODIGO PAIS", "COD PAIS", "CODIGO DE PAIS"]
+        };
+        const encontrado = { tipoDocumento: null, nacionalidad: null };
+        const normalizarCabecera = valor => normalizarTextoIdentidad(valor).replace(/[._\-\/]/g, " ").replace(/\s+/g, " ").trim();
+        const coincide = (cabecera, lista) => {
+            const c = normalizarCabecera(cabecera);
+            return lista.some(alias => c === normalizarCabecera(alias) || c.includes(normalizarCabecera(alias)));
+        };
+
+        const limite = Math.min(rows.length, 8);
+        for (let i = 0; i < limite; i++) {
+            const fila = rows[i] || [];
+            for (let c = 0; c < fila.length; c++) {
+                const valor = fila[c];
+                if (valor == null || String(valor).trim() === "") continue;
+                if (encontrado.tipoDocumento === null && coincide(valor, aliases.tipoDocumento)) encontrado.tipoDocumento = c;
+                if (encontrado.nacionalidad === null && coincide(valor, aliases.nacionalidad)) encontrado.nacionalidad = c;
+            }
+        }
+        return encontrado;
+    }
+
+    function obtenerValorNacionalidad(rawValue) {
+        const raw = String(rawValue == null ? "" : rawValue).trim();
+        if (raw === "") return "";
+        const n = normalizarTextoIdentidad(raw);
+        if (n === "152" || n === "CHILE" || n === "CHI") return IDENTITY_DEFAULTS.PAIS_CHILE;
+        if (/^\d{3}$/.test(raw)) return raw;
+        return IDENTITY_DEFAULTS.PAIS_DESCONOCIDO;
+    }
+
+    function identidadPaciente(r, identityCols, fnac, fechaCorte) {
+        const rutRaw = r[COL.RUT];
+        const rut = analizarRutChileno(rutRaw);
+        const tipoOriginal = identityCols.tipoDocumento !== null ? String(r[identityCols.tipoDocumento] || "").trim() : "";
+        const nacionalidadOriginal = identityCols.nacionalidad !== null ? obtenerValorNacionalidad(r[identityCols.nacionalidad]) : "";
+        
+        let pais = nacionalidadOriginal || IDENTITY_DEFAULTS.PAIS_DESCONOCIDO;
+        let tipoDocumento = tipoOriginal || rut.tipoDocumento;
+
+        if (rut.matematicamenteValido && !rut.esProvisorio) {
+            pais = IDENTITY_DEFAULTS.PAIS_CHILE;
+            tipoDocumento = "RUN";
+        }
+
+        // --- EXIGENCIA DE NEGOCIO: TIPO_CIP=5 Y PAIS VACÍO PARA RUT PROVISORIOS FONASA ---
+        if (rut.esProvisorio) {
+            tipoDocumento = "RUT PROVISORIO FONASA";
+            pais = ""; 
+        }
+
+        if (!rut.presente) {
+            pais = "";
+            if (!nacionalidadOriginal) {
+                tipoDocumento = "INDOCUMENTADO";
+            }
+        }
+
+        return { ...rut, rutSalida: rut.limpio, pais, tipoDocumento, tipoDocumentoOriginal: tipoOriginal, nacionalidadOriginal };
+    }
+
+    function textoDiagnosticos(r) {
+        const dg = String(r[COL.DG] || "").replace(/\s+/g, " ").trim();
+        const am = String(r[COL.MORBID] || "").replace(/\s+/g, " ").trim();
+        const partes = [];
+        if (dg) partes.push(`Dg Principal: ${dg}`);
+        if (am) partes.push(`Ant. Mórbidos: ${am}`);
+        return partes.join(". ");
+    }
+
+    // ========================================================================
+    // VALIDACIÓN DE FORMATO: la hoja debe tener la planilla de la Unidad de Diálisis
+    // ========================================================================
+    const FORMATO_DIALISIS = [
+        { col: COL.NOMBRE, nombre: "NOMBRE", test: h => h === "NOMBRE" || h === "NOMBRES" },
+        { col: COL.APATERNO, nombre: "APATERNO", test: h => h.includes("PATERNO") },
+        { col: COL.AMATERNO, nombre: "A.MATERNO", test: h => h.includes("MATERNO") },
+        { col: COL.RUT, nombre: "RUN", test: h => /\bRU[NT]\b/.test(h) },
+        { col: COL.FICHA, nombre: "Ficha Clínica", test: h => h.includes("FICHA") },
+        { col: COL.FNAC, nombre: "Fecha de Nacimiento", test: h => h.includes("NACIMIENTO") },
+        { col: COL.PREVISION, nombre: "Previsión", test: h => h.includes("PREVISION") },
+        { col: COL.DG, nombre: "Dg Principal", test: h => /\bDG\b|DIAGNOSTICO/.test(h) },
+        { col: COL.MORBID, nombre: "Ant. Morbidos", test: h => h.includes("MORBID") },
+        { col: COL.HORARIO, nombre: "Horario asignado", test: h => h.includes("HORARIO") },
+        { col: COL.DIAS_START, nombre: "Fecha de Hemodiálisis Realizadas", test: h => h.includes("HEMODIALISIS") || h.includes("DIALISIS") }
+    ];
+    const colLetra = c => { let s = ""; c++; while (c > 0) { const m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = Math.floor((c - 1) / 26); } return s; };
+
+    function validarFormatoDialisis(rows) {
+        let mejor = { fila: -1, ok: 0, faltan: FORMATO_DIALISIS };
+        const limite = Math.min(rows.length, 10);
+        for (let i = 0; i < limite; i++) {
+            const fila = rows[i] || [];
+            const faltan = FORMATO_DIALISIS.filter(f => !f.test(normalizarTextoIdentidad(fila[f.col]).replace(/\s+/g, " ")));
+            const ok = FORMATO_DIALISIS.length - faltan.length;
+            if (ok > mejor.ok) mejor = { fila: i, ok, faltan };
+        }
+        if (mejor.ok === FORMATO_DIALISIS.length) return { valido: true, headerRow: mejor.fila };
+        let detalle;
+        if (mejor.ok >= 4) {
+            const fila = rows[mejor.fila] || [];
+            detalle = `Encontré los encabezados en la fila ${mejor.fila + 1}, pero estas columnas no calzan con la planilla base:\n` +
+                mejor.faltan.map(f => `• Columna ${colLetra(f.col)}: se esperaba "${f.nombre}" y dice "${String(fila[f.col] == null ? "(vacía)" : fila[f.col]).trim()}"`).join("\n");
+        } else {
+            detalle = "No encontré los encabezados de la planilla de la Unidad de Diálisis (NOMBRE, APATERNO, RUN, Ficha Clínica, Fecha de Nacimiento, Fecha de Hemodiálisis Realizadas…) en las primeras filas.";
+        }
+        return { valido: false, detalle };
+    }
+
+    function transformUDIALtoPCTES(rows, year, monthIdx) {
+        const arr = [];
+        const erroresRut = [];
+        const identityCols = detectarColumnasIdentidad(rows);
+
+        for (let i = globalHeaderRow + 1; i < rows.length; i++) {
+            const r = rows[i] || [];
+            if (!r[COL.NOMBRE]) continue;
+            const valName = String(r[COL.NOMBRE]).trim().toUpperCase();
+            if (valName === "NOMBRE" || valName.includes("NOMBRE APATERNO")) continue;
+
+            let fnac = r[COL.FNAC];
+            if (typeof fnac === 'number') { fnac = excelDateToJSDate(fnac); } 
+            else { fnac = (fnac || "") + (fnac && !String(fnac).includes(':') ? " 00:00" : ""); }
+
+            const fechaCorte = new Date(year, monthIdx + 1, 0);
+            const identidad = identidadPaciente(r, identityCols, fnac, fechaCorte);
+
+            // ========================================================================
+            // LÓGICA DE AUDITORÍA: REVISAR RUT NO LOGICO MATEMATICAMENTE
+            // ========================================================================
+            let docLimpio = identidad.limpio.toUpperCase();
+            let esPalabraReservada = docLimpio.includes("INDOCUMENTADO") || docLimpio.includes("PASAPORTE") || docLimpio.includes("SINDOC");
+
+            // Si no es un RUT provisorio 40-50M y tampoco es una palabra intencional como "PASAPORTE"
+            if (identidad.presente && !identidad.esProvisorio && !esPalabraReservada) {
+                // Si falla el formato chileno O falla la regla matemática Módulo 11...
+                if (!identidad.formatoValido || !identidad.matematicamenteValido) {
+                    const nombreCompleto = `${String(r[COL.NOMBRE] || "").trim()} ${String(r[COL.APATERNO] || "").trim()} ${String(r[COL.AMATERNO] || "").trim()}`.trim();
+                    const rutIngresado = r[COL.RUT] || "VACÍO";
+                    // Se acumulan TODOS los errores; la transformación se detiene al final
+                    erroresRut.push(`• Fila ${i + 1}: ${nombreCompleto} — RUT ${rutIngresado}`);
+                }
+            }
+            // ========================================================================
+
+            let ses = 0;
+            for (let c = COL.DIAS_START; c < r.length; c++) {
+                const v = parseInt(r[c]);
+                if (!isNaN(v) && v > 0) ses++;
+            }
+
+            const prevMap = { 'A': '1', 'B': '2', 'C': '3', 'D': '4' };
+
+            arr.push({
+                originalIndex: i, hospital: "103101", historia: String(r[COL.FICHA] || "").trim(),
+                episodio: `${String(r[COL.FICHA] || "").trim()}-030125`, fnac: fnac, sexo: "999", fecing: "03/01/2025 7:30", tiping: "2",
+                prevision: prevMap[String(r[COL.PREVISION] || "").toUpperCase()] || "", etnia: "96", dist_pac: "22", mres: "2201",
+
+                pais: identidad.pais,
+                fecalt: "03/01/2025 11:30", tipalt: "1", serving: "20-346", servalt: "20-346",
+                tipo_cip: identidad.esProvisorio ? IDENTITY_DEFAULTS.TIPO_CIP_PROVISORIO : IDENTITY_DEFAULTS.TIPO_CIP_RUN,
+                especialidad: "30", servicio_salud: "3",
+                
+                rut: identidad.rutSalida,
+                nombre: String(r[COL.NOMBRE] || "").trim(), apaterno: String(r[COL.APATERNO] || "").trim(), amaterno: String(r[COL.AMATERNO] || "").trim(),
+                ant_morbidos: textoDiagnosticos(r), sessions: ses, _rawRow: r
+            });
+        }
+        if (erroresRut.length) {
+            throw new Error(`REVISAR RUT NO LOGICO MATEMATICAMENTE (${erroresRut.length} ${erroresRut.length === 1 ? 'paciente' : 'pacientes'})\n\n${erroresRut.join('\n')}\n\nVerifique que tenga guion y que el dígito verificador coincida.`);
+        }
+        return arr;
+    }
+
+    function generateCARGA(pctes, year, monthIdx) {
+        const arr = [];
+        const omitidas = [];
+        const vistos = new Map(); // clave paciente + día -> fila Excel donde se generó
+        pctes.forEach(p => {
+            const horario = String(p._rawRow[COL.HORARIO] || "");
+            let start = "00:00", end = "00:00";
+            const m = horario.match(/(\d{1,2}[:\.]\d{2})\s*(?:a|-|A)\s*(\d{1,2}[:\.]\d{2})/i);
+            if (m) { start = m[1].replace('.', ':').padStart(5, '0'); end = m[2].replace('.', ':').padStart(5, '0'); }
+            const clavePaciente = p.historia || p.rut || `${p.nombre} ${p.apaterno} ${p.amaterno}`;
+            const base = { filaExcel: p.originalIndex + 1, historia: p.historia, rut: p.rut, nombre: `${p.nombre} ${p.apaterno} ${p.amaterno}`.trim() };
+            let generadas = 0;
+            for (let c = COL.DIAS_START; c < p._rawRow.length; c++) {
+                const dVal = p._rawRow[c];
+                if (dVal && !isNaN(dVal) && parseInt(dVal) > 0) {
+                    const day = parseInt(dVal);
+                    const date = new Date(year, monthIdx, day);
+                    if (date.getMonth() !== monthIdx) {
+                        omitidas.push({ ...base, dia: day, motivo: "Día no existe en el mes de proceso" });
+                        continue;
+                    }
+                    const clave = `${clavePaciente}|${day}`;
+                    if (vistos.has(clave)) {
+                        const filaPrev = vistos.get(clave);
+                        omitidas.push({ ...base, dia: day, motivo: filaPrev === base.filaExcel ? "Sesión repetida el mismo día (se generó solo 1)" : `Sesión repetida el mismo día, ya generada desde la fila ${filaPrev} (se generó solo 1)` });
+                        continue;
+                    }
+                    vistos.set(clave, base.filaExcel);
+                    const dateStr = formatDate(date);
+                    const dd = String(day).padStart(2, '0'), mm = String(monthIdx + 1).padStart(2, '0'), yy = String(year).slice(-2);
+                    arr.push({ ...p, episodio: `${p.historia}-${dd}${mm}${yy}`, fecing: `${dateStr} ${start}`, fecalt: `${dateStr} ${end}`, _rawRow: undefined });
+                    generadas++;
+                }
+            }
+            p.sessions = generadas; // las sesiones informadas = las que realmente se generaron
+        });
+        globalOmitidas = omitidas;
+        return arr;
+    }
+
+    function renderDuplicados() {
+        const n = globalOmitidas.length;
+        const badge = document.getElementById('dupBadge');
+        badge.innerText = n;
+        badge.className = n ? "ml-1 bg-orange-500 text-white px-1.5 py-0.5 rounded-full text-[10px] font-bold" : "ml-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full text-[10px] font-bold";
+        document.getElementById('dupSummary').innerText = n
+            ? `${n} sesión(es) del Excel no se generaron en la carga. Revisa si corresponde corregir el Excel.`
+            : "No hay sesiones duplicadas ni días fuera del mes.";
+        const esc = v => String(v == null ? '' : v).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+        document.getElementById('dupBody').innerHTML = globalOmitidas.map(o =>
+            `<tr class="hover:bg-orange-50 dark:hover:bg-orange-900/10"><td class="px-4 py-2">${o.filaExcel}</td><td class="px-4 py-2">${esc(o.historia)}</td><td class="px-4 py-2">${esc(o.rut)}</td><td class="px-4 py-2">${esc(o.nombre)}</td><td class="px-4 py-2 font-bold">${o.dia}</td><td class="px-4 py-2">${esc(o.motivo)}</td></tr>`
+        ).join('');
+    }
+
+    function downloadDuplicados() {
+        if (!globalOmitidas.length) return alert("No hay sesiones duplicadas ni omitidas.");
+        const q = v => { const t = String(v == null ? '' : v); return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+        let c = '\uFEFF' + ['FILA_EXCEL', 'FICHA', 'RUT', 'NOMBRE', 'DIA', 'MOTIVO'].join(';') + '\n';
+        globalOmitidas.forEach(o => { c += [o.filaExcel, o.historia, o.rut, o.nombre, o.dia, o.motivo].map(q).join(';') + '\n'; });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([c], { type: "text/csv;charset=utf-8;" }));
+        const mSelect = document.getElementById('monthSelect');
+        link.download = `ETL-GRD-DIAL-DUPLICADAS-${mSelect.options[mSelect.selectedIndex].text.toUpperCase()}-${document.getElementById('yearInput').value}.csv`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function generateDialysisPDF() {
+        if (!globalPCTES.length) return alert("No hay datos para generar reporte.");
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+        const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const mIdx = parseInt(document.getElementById('monthSelect').value);
+        const year = document.getElementById('yearInput').value;
+        const periodoStr = `${months[mIdx]} ${year}`;
+        const totalPatients = globalPCTES.length;
+        const totalSessions = globalPCTES.reduce((acc, p) => acc + p.sessions, 0);
+        const now = new Date();
+        const generatedStr = `Generado ${now.toLocaleString()}`;
+
+        const leftMargin = 10, pageWidth = doc.internal.pageSize.width, rightMargin = 10;
+        const tableWidth = pageWidth - leftMargin - rightMargin;
+
+        const tableBody = globalPCTES.map(p => {
+            let edadStr = "";
+            if (p.fnac) {
+                const parts = p.fnac.split(' ')[0].split('/');
+                if (parts.length === 3) {
+                    const dob = new Date(parts[2], parts[1] - 1, parts[0]);
+                    const diff = Date.now() - dob.getTime();
+                    edadStr = `${Math.abs(new Date(diff).getUTCFullYear() - 1970)} Años`;
+                }
+            }
+            return [p.historia, p.rut, `${p.nombre} ${p.apaterno} ${p.amaterno}`, p.fnac, edadStr, p.sessions === 1 ? "1 SESIÓN" : `${p.sessions} SESIONES`];
+        });
+
+        doc.autoTable({
+            head: [['Ficha', 'RUT', 'Nombre Completo', 'Fecha de Nacimiento', 'Edad', 'SESIONES']],
+            body: tableBody, startY: 55, margin: { top: 55, bottom: 20, left: leftMargin, right: rightMargin },
+            theme: 'grid',
+            styles: { fontSize: configPDF.tableBodySize, cellPadding: 2, valign: 'middle', halign: 'center', lineColor: [220, 220, 220], lineWidth: 0.1, overflow: 'linebreak' },
+            headStyles: { fillColor: [240, 240, 240], textColor: [30, 30, 30], fontStyle: 'bold', lineWidth: 0.1, fontSize: configPDF.tableHeaderSize },
+            columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 25 }, 2: { halign: 'left', cellWidth: 'auto' }, 3: { cellWidth: 25 }, 4: { cellWidth: 15 }, 5: { cellWidth: 25, fontStyle: 'bold' } },
+            didDrawPage: function (data) {
+                doc.setFontSize(configPDF.titleSize); doc.setFont("helvetica", "bold"); doc.setTextColor(0, 0, 0); doc.text("Reporte diálisis GRD", leftMargin, 15);
+                doc.setFontSize(configPDF.subtitleSize); doc.setFont("helvetica", "normal"); doc.text("Grupos Relacionados por Diagnóstico", leftMargin, 19);
+                doc.setFontSize(Math.max(6, configPDF.subtitleSize)); doc.setTextColor(100, 100, 100); doc.text("NEFROTRON 3000 Raptor HEMI V8 Procesador Diálisis ETL-GRD", leftMargin, 23);
+                doc.setFillColor(245, 245, 245); doc.setDrawColor(220, 220, 220); doc.roundedRect(leftMargin, 27, tableWidth, 20, 3, 3, 'FD');
+                doc.setFontSize(configPDF.metaSize); doc.setTextColor(50, 50, 50);
+                const boxCol1 = leftMargin + 4, boxCol2 = leftMargin + (tableWidth / 2) - 10, boxCol3 = leftMargin + tableWidth - 30;
+                doc.text(generatedStr, boxCol1, 34); doc.text(`Periodo: ${periodoStr}`, boxCol1, 40);
+                doc.setFont("helvetica", "bold"); doc.text(`Pacientes: ${totalPatients}`, boxCol2, 34); doc.text(`Sesiones Ambulatorias: ${totalSessions}`, boxCol2, 40);
+                doc.setFont("helvetica", "normal"); doc.text(`Hoja ${doc.internal.getNumberOfPages()}`, boxCol3, 34); doc.text(`${tableBody.length} Registros`, boxCol3, 40);
+                const footerText = `NEFROTRON 3000 Raptor HEMI V8 Procesador Diálisis ETL-GRD ${APP_VERSION} TM Kevin Garay Marín. Los datos aquí presentados poseen carácter confidencial y están protegidos por las normativas vigentes.`;
+                doc.setFontSize(configPDF.footerSize); doc.setTextColor(150); doc.text(doc.splitTextToSize(footerText, pageWidth - 40), pageWidth / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+            },
+            didDrawCell: function (data) {
+                if (data.section === 'body' && data.column.index === 5) {
+                    const cell = data.cell;
+                    doc.setFillColor(241, 154, 55); doc.setDrawColor(241, 154, 55);
+                    const pillX = cell.x + 2, pillY = cell.y + 1.5, pillWidth = cell.width - 4, pillHeight = cell.height - 3, radius = 1.5;
+                    doc.roundedRect(pillX, pillY, pillWidth, pillHeight, radius, radius, 'F');
+                    doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(6);
+                    doc.text(data.cell.raw, cell.x + (cell.width / 2), cell.y + (cell.height / 2), { align: 'center', baseline: 'middle' });
+                    data.cell.text = [];
+                }
+            }
+        });
+        doc.save(`Reporte_Dialisis_GRD_${months[mIdx]}_${year}.pdf`);
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, prevent, false));
+    function prevent(e) { e.preventDefault(); e.stopPropagation(); }
+    ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('border-blue-500', 'bg-blue-50/10'), false));
+    ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('border-blue-500', 'bg-blue-50/10'), false));
+    dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files), false);
+    function handleFileSelect(e) { handleFiles(e.target.files); }
+
+    function handleFiles(files) {
+        if (!files.length) return;
+        const file = files[0];
+        document.getElementById('uploadPrompt').classList.add('hidden');
+        document.getElementById('fileInfo').classList.remove('hidden');
+        document.getElementById('fileInfo').classList.add('fade-in');
+        document.getElementById('fileName').innerText = file.name;
+        const reader = new FileReader();
+        reader.onload = e => {
+            globalWorkbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            const nombres = globalWorkbook.SheetNames;
+            const sel = document.getElementById('sheetSelect');
+            sel.innerHTML = nombres.map((n, i) => `<option value="${i}">${n.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]))}${i === nombres.length - 1 ? ' (última)' : ''}</option>`).join('');
+            document.getElementById('sheetSelectWrap').classList.toggle('hidden', nombres.length < 2);
+            // REGLA: por defecto se trabaja SIEMPRE con la última hoja del archivo
+            sel.value = String(nombres.length - 1);
+            loadSheet(nombres.length - 1);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function loadSheet(idx) {
+        if (!globalWorkbook) return;
+        const nombres = globalWorkbook.SheetNames;
+        idx = parseInt(idx, 10);
+        globalSheetName = nombres[idx];
+        const filas = XLSX.utils.sheet_to_json(globalWorkbook.Sheets[globalSheetName], { header: 1 });
+        document.getElementById('outputSection').classList.add('hidden');
+        const label = document.getElementById('sheetLabel');
+        const formato = validarFormatoDialisis(filas);
+        if (!formato.valido) {
+            globalRawRows = [];
+            label.innerText = `ARCHIVO RECHAZADO: ${globalSheetName}`;
+            label.className = "text-sm text-red-600 dark:text-red-400 font-extrabold uppercase";
+            document.getElementById('sheetHint').innerText = nombres.length > 1 ? "Esta hoja no tiene el formato de diálisis. Puedes elegir otra hoja." : "El archivo no tiene el formato de diálisis.";
+            document.getElementById('processBtn').disabled = true;
+            alert(`⚠️ REVISIÓN INMEDIATA ⚠️\n\nArchivo rechazado: no corresponde a la planilla de la Unidad de Diálisis.\n\nHoja: ${globalSheetName}\n\n${formato.detalle}`);
+            return;
+        }
+        globalHeaderRow = formato.headerRow;
+        globalRawRows = filas;
+        label.className = "text-sm text-green-600 dark:text-green-400 font-extrabold uppercase";
+        label.innerText = `SE TRABAJARÁ CON ${globalSheetName}`;
+        const esUltima = idx === nombres.length - 1;
+        let hint = nombres.length > 1 ? `El archivo tiene ${nombres.length} hojas. ${esUltima ? 'Se tomó la última.' : '⚠️ Elegiste una hoja que NO es la última.'}` : '';
+        const per = detectarPeriodoHoja(globalSheetName, filas);
+        if (per) {
+            document.getElementById('monthSelect').value = per.mes;
+            if (per.anio) document.getElementById('yearInput').value = per.anio;
+            const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            hint += `${hint ? ' ' : ''}Mes de proceso ajustado a ${months[per.mes]}${per.anio ? ' ' + per.anio : ''}.`;
+        }
+        document.getElementById('sheetHint').innerText = hint;
+        document.getElementById('processBtn').disabled = false;
+    }
+
+    // Lee el mes/año desde el nombre de la hoja (ej. "AGOSTO 2026") o el título de la fila 1
+    function detectarPeriodoHoja(nombreHoja, rows) {
+        const meses = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+        const titulo = (rows || []).slice(0, 4).map(f => (f || []).filter(v => v != null).join(' ')).join(' ');
+        for (const texto of [nombreHoja, titulo]) {
+            const t = normalizarTextoIdentidad(texto).replace('SETIEMBRE', 'SEPTIEMBRE');
+            const mes = meses.findIndex(m => new RegExp(`\\b${m}\\b`).test(t));
+            if (mes >= 0) {
+                const a = t.match(/\b(20\d{2})\b/);
+                return { mes, anio: a ? parseInt(a[1], 10) : null };
+            }
+        }
+        return null;
+    }
+
+    function updateStats() {
+        const rec = globalCARGA.length;
+        document.getElementById('statPatients').innerText = globalPCTES.length;
+        document.getElementById('statRecords').innerText = rec;
+        document.getElementById('statPerCoder').innerText = rec > 0 ? Math.ceil(rec / globalCoders) : 0;
+    }
+
+    function toggleCoderEdit() {
+        const el = document.getElementById('coderEditMode');
+        el.classList.toggle('hidden');
+        if (!el.classList.contains('hidden')) document.getElementById('coderInput').focus();
+    }
+
+    function saveCoderCount() {
+        const v = parseInt(document.getElementById('coderInput').value);
+        if (v > 0) { globalCoders = v; updateStats(); document.getElementById('coderEditMode').classList.add('hidden'); }
+    }
+
+    function setPctesView(mode) {
+        currentPctesView = mode;
+        document.getElementById('btnViewList').className = `segment-btn flex items-center gap-1 ${mode === 'list' ? 'active' : ''}`;
+        document.getElementById('btnViewGrid').className = `segment-btn flex items-center gap-1 ${mode === 'grid' ? 'active' : ''}`;
+        renderPctesContent();
+    }
+
+    function sortPctes() {
+        currentSort = document.getElementById('sortSelect').value;
+        renderPctesContent();
+    }
+
+    function renderCargaTable() {
+        const headers = getHeaders();
+        document.getElementById('cargaHead').innerHTML = `<tr>${headers.map(h => `<th class="px-4 py-3 font-semibold text-gray-500 border-b border-gray-200 dark:border-gray-700">${h}</th>`).join('')}</tr>`;
+        document.getElementById('cargaBody').innerHTML = globalCARGA.slice(0, 50).map(r =>
+            `<tr class="hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors">
+                ${objectToRowArray(r).map(v => `<td class="px-4 py-2 border-b border-gray-100 dark:border-gray-800">${v || ''}</td>`).join('')}
+            </tr>`
+        ).join('');
+    }
+
+    function renderPctesContent() {
+        const container = document.getElementById('pctesContainer');
+        container.innerHTML = "";
+        let sortedData = [...globalPCTES];
+        if (currentSort === 'desc') sortedData.sort((a, b) => b.sessions - a.sessions);
+        else if (currentSort === 'asc') sortedData.sort((a, b) => a.sessions - b.sessions);
+        else sortedData.sort((a, b) => a.originalIndex - b.originalIndex);
+
+        if (currentPctesView === 'list') {
+            const ul = document.createElement('div');
+            ul.className = "flex flex-col gap-2";
+            sortedData.forEach(p => {
+                const fullName = `${p.nombre} ${p.apaterno} ${p.amaterno}`;
+                const row = document.createElement('div');
+                row.className = "glass-panel bg-white/40 dark:bg-gray-800/40 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all";
+                row.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 shrink-0">
+                            <span class="material-symbols-rounded">person</span>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-gray-900 dark:text-gray-100">${fullName}</h3>
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                <span class="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-[10px] font-mono">RUN: ${p.rut}</span>
+                                <span>Ficha: ${p.historia}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-start sm:self-center">
+                        <span class="text-xs font-bold uppercase text-gray-400">Sesiones</span>
+                        <div class="bg-blue-500 text-white px-3 py-1 rounded-full font-bold text-sm shadow-sm">${p.sessions}</div>
+                    </div>
+                `;
+                ul.appendChild(row);
+            });
+            container.appendChild(ul);
+        } else {
+            const grid = document.createElement('div');
+            grid.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4";
+            sortedData.forEach(p => {
+                const fullName = `${p.nombre} ${p.apaterno} ${p.amaterno}`;
+                const card = document.createElement('div');
+                card.className = "glass-panel bg-white/60 dark:bg-gray-800/60 p-5 rounded-2xl flex flex-col gap-3 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all relative overflow-hidden group";
+                card.innerHTML = `
+                    <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-bl-full -mr-6 -mt-6 transition-transform group-hover:scale-110"></div>
+                    <div class="flex items-start gap-3 relative z-10">
+                        <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-rounded text-gray-500">person</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">NOMBRE</p>
+                            <p class="font-bold text-sm truncate leading-tight" title="${fullName}">${fullName}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-1 relative z-10">
+                        <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 border border-gray-100 dark:border-gray-700">
+                            <p class="text-[9px] uppercase font-bold text-gray-400">RUN</p>
+                            <p class="font-mono text-xs font-semibold">${p.rut}</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-2 border border-gray-100 dark:border-gray-700">
+                            <p class="text-[9px] uppercase font-bold text-gray-400">Ficha</p>
+                            <p class="font-mono text-xs font-semibold">${p.historia}</p>
+                        </div>
+                    </div>
+                    <div class="mt-auto pt-2 border-t border-gray-100 dark:border-gray-700 flex justify-between items-center relative z-10">
+                        <span class="text-xs font-bold text-gray-500">Sesiones Mes</span>
+                        <span class="text-xl font-bold text-blue-600 dark:text-blue-400">${p.sessions}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            container.appendChild(grid);
+        }
+    }
+
+    function excelDateToJSDate(s) { return formatDate(new Date((s - 25569) * 86400000)); }
+    function formatDate(d) { return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`; }
+
+    function downloadFile(type, fmt) {
+        const data = type === 'carga' ? globalCARGA : globalPCTES;
+        if (!data.length) return;
+        const isTxt = fmt === 'txt';
+        const sep = isTxt ? '|' : ';';
+        const mime = isTxt ? 'text/plain' : 'text/csv';
+        let c = (isTxt ? '' : '\uFEFF') + getHeaders().join(sep) + '\n';
+        data.forEach(o => {
+            c += objectToRowArray(o, isTxt).map(v => {
+                let s = String(v || "");
+                if (isTxt) s = s.replace(/\r?\n/g, ' ').replace(/\|/g, ''); 
+                else if (!isTxt && (s.includes(';') || s.includes('\n'))) s = `"${s.replace(/"/g, '""')}"`;
+                return s;
+            }).join(sep) + '\n';
+        });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([c], { type: mime + ";charset=utf-8;" }));
+        const mSelect = document.getElementById('monthSelect');
+        const monthName = mSelect.options[mSelect.selectedIndex].text.toUpperCase();
+        const year = document.getElementById('yearInput').value;
+        link.download = `ETL-GRD-DIAL-${monthName}-${year}.${fmt}`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function objectToRowArray(o, txt = false) {
+        const v_dist_pac = txt ? "022" : "22";
+        const v_mres = txt ? "02201" : "2201";
+        const v_servicio_salud = txt ? "03" : "3";
+        const v_programa = txt ? "06" : "";
+        const v_cat_ocp = txt ? "00" : "";
+        const v_pais = (o.pais !== undefined && o.pais !== null) ? String(o.pais) : IDENTITY_DEFAULTS.PAIS_DESCONOCIDO;
+        const v_tipo_cip = (o.tipo_cip !== undefined && o.tipo_cip !== null) ? String(o.tipo_cip) : IDENTITY_DEFAULTS.TIPO_CIP_RUN;
+
+        return [
+            o.hospital, o.historia, o.episodio, o.fnac, "999", o.fecing, "2", o.prevision, "96",
+            v_dist_pac, v_mres, v_pais, o.fecalt, "1", "20-346", "20-346", v_tipo_cip, "30", v_servicio_salud,
+            "", "", "0", "0", "0", "0", "0", "0", "0", "0", "0", "", "", "07601174-5", o.rut, "5", "2", "0", "0", "0", "0", "0",
+            o.nombre, o.apaterno, o.amaterno, v_programa, "", "", "", "", "1", ...Array(25).fill(""), v_cat_ocp, NOTA_DIALISIS, o.ant_morbidos, "", ""
+        ];
+    }
+
+    function getHeaders() {
+        return ["HOSPITAL", "HISTORIA", "EPISODIO", "FECNAC", "SEXO", "FECING", "TIPING", "REGCON_01", "ETNIA", "DIST_PAC", "MRES", "PAIS", "FECALT", "TIPALT", "SERVING", "SERVALT", "TIPO_CIP", "ESPECIALIDAD", "SERVICIO_SALUD", "FEC_INT_1", "FECPART", "TGESTAC", "RN_PESO_01", "RN_SEXO_01", "RN_PESO_02", "RN_SEXO_02", "RN_PESO_03", "RN_SEXO_03", "RN_PESO_04", "RN_SEXO_04", "TRASHOSPITAL", "PROCHOSPITAL", "MEDICOALT", "CIP", "PROC", "TIPO_ACTIVIDAD", "RN_EST_01", "RN_EST_02", "RN_EST_03", "RN_EST_04", "ESTADO", "NOMBRE", "APELLIDO1", "APELLIDO2", "PROGRAMA", "RN_COND_ING_01", "RN_COND_ING_02", "RN_COND_ING_03", "RN_COND_ING_04", "CUMPLIMENTACION", "MED_INT_1", "ESPINT", "TIP_PAB", "TRAS_FEC_01", "TRAS_SRV_01", "TRAS_FEC_02", "TRAS_SRV_02", "TRAS_FEC_03", "TRAS_SRV_03", "TRAS_FEC_04", "TRAS_SRV_04", "TRAS_FEC_05", "TRAS_SRV_05", "TRAS_FEC_06", "TRAS_SRV_06", "TRAS_FEC_07", "TRAS_SRV_07", "TRAS_FEC_08", "TRAS_SRV_08", "TRAS_FEC_09", "TRAS_SRV_09", "TRAS_FEC_10", "TRAS_SRV_10", "FEC_URGENCIAS", "OCUPACION", "CAT_OCP", "NOTA", "SIDEBAR1_TEXTO", "SIDEBAR2_TEXTO", "SIDEBAR3_TEXTO"];
+    }
+</script>
+    <!-- ============================================================
+         FONDO MicroSlats (React Bits) + OGL (Unlicense) embebido
+         ============================================================ -->
+    <script>
+/* OGL 1.0.11 - https://github.com/oframe/ogl - Unlicense (subconjunto usado por MicroSlats) */
+var OGL=(()=>{var Z=Object.defineProperty;var Se=Object.getOwnPropertyDescriptor;var be=Object.getOwnPropertyNames;var Ce=Object.prototype.hasOwnProperty;var Ne=(e,t)=>{for(var i in t)Z(e,i,{get:t[i],enumerable:!0})},De=(e,t,i,s)=>{if(t&&typeof t=="object"||typeof t=="function")for(let r of be(t))!Ce.call(e,r)&&r!==i&&Z(e,r,{get:()=>t[r],enumerable:!(s=Se(t,r))||s.enumerable});return e};var ze=e=>De(Z({},"__esModule",{value:!0}),e);var Qe={};Ne(Qe,{Mesh:()=>k,Program:()=>v,RenderTarget:()=>Q,Renderer:()=>V,Texture:()=>O,Triangle:()=>H});function L(e){let t=e[0],i=e[1],s=e[2];return Math.sqrt(t*t+i*i+s*s)}function U(e,t){return e[0]=t[0],e[1]=t[1],e[2]=t[2],e}function dt(e,t,i,s){return e[0]=t,e[1]=i,e[2]=s,e}function j(e,t,i){return e[0]=t[0]+i[0],e[1]=t[1]+i[1],e[2]=t[2]+i[2],e}function $(e,t,i){return e[0]=t[0]-i[0],e[1]=t[1]-i[1],e[2]=t[2]-i[2],e}function pt(e,t,i){return e[0]=t[0]*i[0],e[1]=t[1]*i[1],e[2]=t[2]*i[2],e}function xt(e,t,i){return e[0]=t[0]/i[0],e[1]=t[1]/i[1],e[2]=t[2]/i[2],e}function P(e,t,i){return e[0]=t[0]*i,e[1]=t[1]*i,e[2]=t[2]*i,e}function ut(e,t){let i=t[0]-e[0],s=t[1]-e[1],r=t[2]-e[2];return Math.sqrt(i*i+s*s+r*r)}function ot(e,t){let i=t[0]-e[0],s=t[1]-e[1],r=t[2]-e[2];return i*i+s*s+r*r}function K(e){let t=e[0],i=e[1],s=e[2];return t*t+i*i+s*s}function Et(e,t){return e[0]=-t[0],e[1]=-t[1],e[2]=-t[2],e}function mt(e,t){return e[0]=1/t[0],e[1]=1/t[1],e[2]=1/t[2],e}function B(e,t){let i=t[0],s=t[1],r=t[2],n=i*i+s*s+r*r;return n>0&&(n=1/Math.sqrt(n)),e[0]=t[0]*n,e[1]=t[1]*n,e[2]=t[2]*n,e}function J(e,t){return e[0]*t[0]+e[1]*t[1]+e[2]*t[2]}function tt(e,t,i){let s=t[0],r=t[1],n=t[2],h=i[0],l=i[1],a=i[2];return e[0]=r*a-n*l,e[1]=n*h-s*a,e[2]=s*l-r*h,e}function _t(e,t,i,s){let r=t[0],n=t[1],h=t[2];return e[0]=r+s*(i[0]-r),e[1]=n+s*(i[1]-n),e[2]=h+s*(i[2]-h),e}function Ft(e,t,i,s,r){let n=Math.exp(-s*r),h=t[0],l=t[1],a=t[2];return e[0]=i[0]+(h-i[0])*n,e[1]=i[1]+(l-i[1])*n,e[2]=i[2]+(a-i[2])*n,e}function Mt(e,t,i){let s=t[0],r=t[1],n=t[2],h=i[3]*s+i[7]*r+i[11]*n+i[15];return h=h||1,e[0]=(i[0]*s+i[4]*r+i[8]*n+i[12])/h,e[1]=(i[1]*s+i[5]*r+i[9]*n+i[13])/h,e[2]=(i[2]*s+i[6]*r+i[10]*n+i[14])/h,e}function yt(e,t,i){let s=t[0],r=t[1],n=t[2],h=i[3]*s+i[7]*r+i[11]*n+i[15];return h=h||1,e[0]=(i[0]*s+i[4]*r+i[8]*n)/h,e[1]=(i[1]*s+i[5]*r+i[9]*n)/h,e[2]=(i[2]*s+i[6]*r+i[10]*n)/h,e}function Tt(e,t,i){let s=t[0],r=t[1],n=t[2];return e[0]=s*i[0]+r*i[3]+n*i[6],e[1]=s*i[1]+r*i[4]+n*i[7],e[2]=s*i[2]+r*i[5]+n*i[8],e}function At(e,t,i){let s=t[0],r=t[1],n=t[2],h=i[0],l=i[1],a=i[2],c=i[3],f=l*n-a*r,d=a*s-h*n,g=h*r-l*s,p=l*g-a*d,x=a*f-h*g,u=h*d-l*f,o=c*2;return f*=o,d*=o,g*=o,p*=2,x*=2,u*=2,e[0]=s+f+p,e[1]=r+d+x,e[2]=n+g+u,e}var Rt=(function(){let e=[0,0,0],t=[0,0,0];return function(i,s){U(e,i),U(t,s),B(e,e),B(t,t);let r=J(e,t);return r>1?0:r<-1?Math.PI:Math.acos(r)}})();function wt(e,t){return e[0]===t[0]&&e[1]===t[1]&&e[2]===t[2]}var D=class e extends Array{constructor(t=0,i=t,s=t){return super(t,i,s),this}get x(){return this[0]}get y(){return this[1]}get z(){return this[2]}set x(t){this[0]=t}set y(t){this[1]=t}set z(t){this[2]=t}set(t,i=t,s=t){return t.length?this.copy(t):(dt(this,t,i,s),this)}copy(t){return U(this,t),this}add(t,i){return i?j(this,t,i):j(this,this,t),this}sub(t,i){return i?$(this,t,i):$(this,this,t),this}multiply(t){return t.length?pt(this,this,t):P(this,this,t),this}divide(t){return t.length?xt(this,this,t):P(this,this,1/t),this}inverse(t=this){return mt(this,t),this}len(){return L(this)}distance(t){return t?ut(this,t):L(this)}squaredLen(){return K(this)}squaredDistance(t){return t?ot(this,t):K(this)}negate(t=this){return Et(this,t),this}cross(t,i){return i?tt(this,t,i):tt(this,this,t),this}scale(t){return P(this,this,t),this}normalize(){return B(this,this),this}dot(t){return J(this,t)}equals(t){return wt(this,t)}applyMatrix3(t){return Tt(this,this,t),this}applyMatrix4(t){return Mt(this,this,t),this}scaleRotateMatrix4(t){return yt(this,this,t),this}applyQuaternion(t){return At(this,this,t),this}angle(t){return Rt(this,t)}lerp(t,i){return _t(this,this,t,i),this}smoothLerp(t,i,s){return Ft(this,this,t,i,s),this}clone(){return new e(this[0],this[1],this[2])}fromArray(t,i=0){return this[0]=t[i],this[1]=t[i+1],this[2]=t[i+2],this}toArray(t=[],i=0){return t[i]=this[0],t[i+1]=this[1],t[i+2]=this[2],t}transformDirection(t){let i=this[0],s=this[1],r=this[2];return this[0]=t[0]*i+t[4]*s+t[8]*r,this[1]=t[1]*i+t[5]*s+t[9]*r,this[2]=t[2]*i+t[6]*s+t[10]*r,this.normalize()}};var et=new D,Le=1,V=class{constructor({canvas:t=document.createElement("canvas"),width:i=300,height:s=150,dpr:r=1,alpha:n=!1,depth:h=!0,stencil:l=!1,antialias:a=!1,premultipliedAlpha:c=!1,preserveDrawingBuffer:f=!1,powerPreference:d="default",autoClear:g=!0,webgl:p=2}={}){let x={alpha:n,depth:h,stencil:l,antialias:a,premultipliedAlpha:c,preserveDrawingBuffer:f,powerPreference:d};this.dpr=r,this.alpha=n,this.color=!0,this.depth=h,this.stencil=l,this.premultipliedAlpha=c,this.autoClear=g,this.id=Le++,p===2&&(this.gl=t.getContext("webgl2",x)),this.isWebgl2=!!this.gl,this.gl||(this.gl=t.getContext("webgl",x)),this.gl||console.error("unable to create webgl context"),this.gl.renderer=this,this.setSize(i,s),this.state={},this.state.blendFunc={src:this.gl.ONE,dst:this.gl.ZERO},this.state.blendEquation={modeRGB:this.gl.FUNC_ADD},this.state.cullFace=!1,this.state.frontFace=this.gl.CCW,this.state.depthMask=!0,this.state.depthFunc=this.gl.LEQUAL,this.state.premultiplyAlpha=!1,this.state.flipY=!1,this.state.unpackAlignment=4,this.state.framebuffer=null,this.state.viewport={x:0,y:0,width:null,height:null},this.state.textureUnits=[],this.state.activeTextureUnit=0,this.state.boundBuffer=null,this.state.uniformLocations=new Map,this.state.currentProgram=null,this.extensions={},this.isWebgl2?(this.getExtension("EXT_color_buffer_float"),this.getExtension("OES_texture_float_linear")):(this.getExtension("OES_texture_float"),this.getExtension("OES_texture_float_linear"),this.getExtension("OES_texture_half_float"),this.getExtension("OES_texture_half_float_linear"),this.getExtension("OES_element_index_uint"),this.getExtension("OES_standard_derivatives"),this.getExtension("EXT_sRGB"),this.getExtension("WEBGL_depth_texture"),this.getExtension("WEBGL_draw_buffers")),this.getExtension("WEBGL_compressed_texture_astc"),this.getExtension("EXT_texture_compression_bptc"),this.getExtension("WEBGL_compressed_texture_s3tc"),this.getExtension("WEBGL_compressed_texture_etc1"),this.getExtension("WEBGL_compressed_texture_pvrtc"),this.getExtension("WEBKIT_WEBGL_compressed_texture_pvrtc"),this.vertexAttribDivisor=this.getExtension("ANGLE_instanced_arrays","vertexAttribDivisor","vertexAttribDivisorANGLE"),this.drawArraysInstanced=this.getExtension("ANGLE_instanced_arrays","drawArraysInstanced","drawArraysInstancedANGLE"),this.drawElementsInstanced=this.getExtension("ANGLE_instanced_arrays","drawElementsInstanced","drawElementsInstancedANGLE"),this.createVertexArray=this.getExtension("OES_vertex_array_object","createVertexArray","createVertexArrayOES"),this.bindVertexArray=this.getExtension("OES_vertex_array_object","bindVertexArray","bindVertexArrayOES"),this.deleteVertexArray=this.getExtension("OES_vertex_array_object","deleteVertexArray","deleteVertexArrayOES"),this.drawBuffers=this.getExtension("WEBGL_draw_buffers","drawBuffers","drawBuffersWEBGL"),this.parameters={},this.parameters.maxTextureUnits=this.gl.getParameter(this.gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS),this.parameters.maxAnisotropy=this.getExtension("EXT_texture_filter_anisotropic")?this.gl.getParameter(this.getExtension("EXT_texture_filter_anisotropic").MAX_TEXTURE_MAX_ANISOTROPY_EXT):0}setSize(t,i){this.width=t,this.height=i,this.gl.canvas.width=t*this.dpr,this.gl.canvas.height=i*this.dpr,this.gl.canvas.style&&Object.assign(this.gl.canvas.style,{width:t+"px",height:i+"px"})}setViewport(t,i,s=0,r=0){this.state.viewport.width===t&&this.state.viewport.height===i||(this.state.viewport.width=t,this.state.viewport.height=i,this.state.viewport.x=s,this.state.viewport.y=r,this.gl.viewport(s,r,t,i))}setScissor(t,i,s=0,r=0){this.gl.scissor(s,r,t,i)}enable(t){this.state[t]!==!0&&(this.gl.enable(t),this.state[t]=!0)}disable(t){this.state[t]!==!1&&(this.gl.disable(t),this.state[t]=!1)}setBlendFunc(t,i,s,r){this.state.blendFunc.src===t&&this.state.blendFunc.dst===i&&this.state.blendFunc.srcAlpha===s&&this.state.blendFunc.dstAlpha===r||(this.state.blendFunc.src=t,this.state.blendFunc.dst=i,this.state.blendFunc.srcAlpha=s,this.state.blendFunc.dstAlpha=r,s!==void 0?this.gl.blendFuncSeparate(t,i,s,r):this.gl.blendFunc(t,i))}setBlendEquation(t,i){t=t||this.gl.FUNC_ADD,!(this.state.blendEquation.modeRGB===t&&this.state.blendEquation.modeAlpha===i)&&(this.state.blendEquation.modeRGB=t,this.state.blendEquation.modeAlpha=i,i!==void 0?this.gl.blendEquationSeparate(t,i):this.gl.blendEquation(t))}setCullFace(t){this.state.cullFace!==t&&(this.state.cullFace=t,this.gl.cullFace(t))}setFrontFace(t){this.state.frontFace!==t&&(this.state.frontFace=t,this.gl.frontFace(t))}setDepthMask(t){this.state.depthMask!==t&&(this.state.depthMask=t,this.gl.depthMask(t))}setDepthFunc(t){this.state.depthFunc!==t&&(this.state.depthFunc=t,this.gl.depthFunc(t))}setStencilMask(t){this.state.stencilMask!==t&&(this.state.stencilMask=t,this.gl.stencilMask(t))}setStencilFunc(t,i,s){this.state.stencilFunc===t&&this.state.stencilRef===i&&this.state.stencilFuncMask===s||(this.state.stencilFunc=t||this.gl.ALWAYS,this.state.stencilRef=i||0,this.state.stencilFuncMask=s||0,this.gl.stencilFunc(t||this.gl.ALWAYS,i||0,s||0))}setStencilOp(t,i,s){this.state.stencilFail===t&&this.state.stencilDepthFail===i&&this.state.stencilDepthPass===s||(this.state.stencilFail=t,this.state.stencilDepthFail=i,this.state.stencilDepthPass=s,this.gl.stencilOp(t,i,s))}activeTexture(t){this.state.activeTextureUnit!==t&&(this.state.activeTextureUnit=t,this.gl.activeTexture(this.gl.TEXTURE0+t))}bindFramebuffer({target:t=this.gl.FRAMEBUFFER,buffer:i=null}={}){this.state.framebuffer!==i&&(this.state.framebuffer=i,this.gl.bindFramebuffer(t,i))}getExtension(t,i,s){return i&&this.gl[i]?this.gl[i].bind(this.gl):(this.extensions[t]||(this.extensions[t]=this.gl.getExtension(t)),i?this.extensions[t]?this.extensions[t][s].bind(this.extensions[t]):null:this.extensions[t])}sortOpaque(t,i){return t.renderOrder!==i.renderOrder?t.renderOrder-i.renderOrder:t.program.id!==i.program.id?t.program.id-i.program.id:t.zDepth!==i.zDepth?t.zDepth-i.zDepth:i.id-t.id}sortTransparent(t,i){return t.renderOrder!==i.renderOrder?t.renderOrder-i.renderOrder:t.zDepth!==i.zDepth?i.zDepth-t.zDepth:i.id-t.id}sortUI(t,i){return t.renderOrder!==i.renderOrder?t.renderOrder-i.renderOrder:t.program.id!==i.program.id?t.program.id-i.program.id:i.id-t.id}getRenderList({scene:t,camera:i,frustumCull:s,sort:r}){let n=[];if(i&&s&&i.updateFrustum(),t.traverse(h=>{if(!h.visible)return!0;h.draw&&(s&&h.frustumCulled&&i&&!i.frustumIntersectsMesh(h)||n.push(h))}),r){let h=[],l=[],a=[];n.forEach(c=>{c.program.transparent?c.program.depthTest?l.push(c):a.push(c):h.push(c),c.zDepth=0,!(c.renderOrder!==0||!c.program.depthTest||!i)&&(c.worldMatrix.getTranslation(et),et.applyMatrix4(i.projectionViewMatrix),c.zDepth=et.z)}),h.sort(this.sortOpaque),l.sort(this.sortTransparent),a.sort(this.sortUI),n=h.concat(l,a)}return n}render({scene:t,camera:i,target:s=null,update:r=!0,sort:n=!0,frustumCull:h=!0,clear:l}){s===null?(this.bindFramebuffer(),this.setViewport(this.width*this.dpr,this.height*this.dpr)):(this.bindFramebuffer(s),this.setViewport(s.width,s.height)),(l||this.autoClear&&l!==!1)&&(this.depth&&(!s||s.depth)&&(this.enable(this.gl.DEPTH_TEST),this.setDepthMask(!0)),(this.stencil||!s||s.stencil)&&(this.enable(this.gl.STENCIL_TEST),this.setStencilMask(255)),this.gl.clear((this.color?this.gl.COLOR_BUFFER_BIT:0)|(this.depth?this.gl.DEPTH_BUFFER_BIT:0)|(this.stencil?this.gl.STENCIL_BUFFER_BIT:0))),r&&t.updateMatrixWorld(),i&&i.updateMatrixWorld(),this.getRenderList({scene:t,camera:i,frustumCull:h,sort:n}).forEach(c=>{c.draw({camera:i})})}};var Oe=1,bt={},v=class{constructor(t,{vertex:i,fragment:s,uniforms:r={},transparent:n=!1,cullFace:h=t.BACK,frontFace:l=t.CCW,depthTest:a=!0,depthWrite:c=!0,depthFunc:f=t.LEQUAL}={}){t.canvas||console.error("gl not passed as first argument to Program"),this.gl=t,this.uniforms=r,this.id=Oe++,i||console.warn("vertex shader not supplied"),s||console.warn("fragment shader not supplied"),this.transparent=n,this.cullFace=h,this.frontFace=l,this.depthTest=a,this.depthWrite=c,this.depthFunc=f,this.blendFunc={},this.blendEquation={},this.stencilFunc={},this.stencilOp={},this.transparent&&!this.blendFunc.src&&(this.gl.renderer.premultipliedAlpha?this.setBlendFunc(this.gl.ONE,this.gl.ONE_MINUS_SRC_ALPHA):this.setBlendFunc(this.gl.SRC_ALPHA,this.gl.ONE_MINUS_SRC_ALPHA)),this.vertexShader=t.createShader(t.VERTEX_SHADER),this.fragmentShader=t.createShader(t.FRAGMENT_SHADER),this.program=t.createProgram(),t.attachShader(this.program,this.vertexShader),t.attachShader(this.program,this.fragmentShader),this.setShaders({vertex:i,fragment:s})}setShaders({vertex:t,fragment:i}){if(t&&(this.gl.shaderSource(this.vertexShader,t),this.gl.compileShader(this.vertexShader),this.gl.getShaderInfoLog(this.vertexShader)!==""&&console.warn(`${this.gl.getShaderInfoLog(this.vertexShader)}
+Vertex Shader
+${Ct(t)}`)),i&&(this.gl.shaderSource(this.fragmentShader,i),this.gl.compileShader(this.fragmentShader),this.gl.getShaderInfoLog(this.fragmentShader)!==""&&console.warn(`${this.gl.getShaderInfoLog(this.fragmentShader)}
+Fragment Shader
+${Ct(i)}`)),this.gl.linkProgram(this.program),!this.gl.getProgramParameter(this.program,this.gl.LINK_STATUS))return console.warn(this.gl.getProgramInfoLog(this.program));this.uniformLocations=new Map;let s=this.gl.getProgramParameter(this.program,this.gl.ACTIVE_UNIFORMS);for(let h=0;h<s;h++){let l=this.gl.getActiveUniform(this.program,h);this.uniformLocations.set(l,this.gl.getUniformLocation(this.program,l.name));let a=l.name.match(/(\w+)/g);l.uniformName=a[0],l.nameComponents=a.slice(1)}this.attributeLocations=new Map;let r=[],n=this.gl.getProgramParameter(this.program,this.gl.ACTIVE_ATTRIBUTES);for(let h=0;h<n;h++){let l=this.gl.getActiveAttrib(this.program,h),a=this.gl.getAttribLocation(this.program,l.name);a!==-1&&(r[a]=l.name,this.attributeLocations.set(l,a))}this.attributeOrder=r.join("")}setBlendFunc(t,i,s,r){this.blendFunc.src=t,this.blendFunc.dst=i,this.blendFunc.srcAlpha=s,this.blendFunc.dstAlpha=r,t&&(this.transparent=!0)}setBlendEquation(t,i){this.blendEquation.modeRGB=t,this.blendEquation.modeAlpha=i}setStencilFunc(t,i,s){this.stencilRef=i,this.stencilFunc.func=t,this.stencilFunc.ref=i,this.stencilFunc.mask=s}setStencilOp(t,i,s){this.stencilOp.stencilFail=t,this.stencilOp.depthFail=i,this.stencilOp.depthPass=s}applyState(){this.depthTest?this.gl.renderer.enable(this.gl.DEPTH_TEST):this.gl.renderer.disable(this.gl.DEPTH_TEST),this.cullFace?this.gl.renderer.enable(this.gl.CULL_FACE):this.gl.renderer.disable(this.gl.CULL_FACE),this.blendFunc.src?this.gl.renderer.enable(this.gl.BLEND):this.gl.renderer.disable(this.gl.BLEND),this.cullFace&&this.gl.renderer.setCullFace(this.cullFace),this.gl.renderer.setFrontFace(this.frontFace),this.gl.renderer.setDepthMask(this.depthWrite),this.gl.renderer.setDepthFunc(this.depthFunc),this.blendFunc.src&&this.gl.renderer.setBlendFunc(this.blendFunc.src,this.blendFunc.dst,this.blendFunc.srcAlpha,this.blendFunc.dstAlpha),this.gl.renderer.setBlendEquation(this.blendEquation.modeRGB,this.blendEquation.modeAlpha),this.stencilFunc.func||this.stencilOp.stencilFail?this.gl.renderer.enable(this.gl.STENCIL_TEST):this.gl.renderer.disable(this.gl.STENCIL_TEST),this.gl.renderer.setStencilFunc(this.stencilFunc.func,this.stencilFunc.ref,this.stencilFunc.mask),this.gl.renderer.setStencilOp(this.stencilOp.stencilFail,this.stencilOp.depthFail,this.stencilOp.depthPass)}use({flipFaces:t=!1}={}){let i=-1;this.gl.renderer.state.currentProgram===this.id||(this.gl.useProgram(this.program),this.gl.renderer.state.currentProgram=this.id),this.uniformLocations.forEach((r,n)=>{let h=this.uniforms[n.uniformName];for(let l of n.nameComponents){if(!h)break;if(l in h)h=h[l];else{if(Array.isArray(h.value))break;h=void 0;break}}if(!h)return Nt(`Active uniform ${n.name} has not been supplied`);if(h&&h.value===void 0)return Nt(`${n.name} uniform is missing a value parameter`);if(h.value.texture)return i=i+1,h.value.update(i),it(this.gl,n.type,r,i);if(h.value.length&&h.value[0].texture){let l=[];return h.value.forEach(a=>{i=i+1,a.update(i),l.push(i)}),it(this.gl,n.type,r,l)}it(this.gl,n.type,r,h.value)}),this.applyState(),t&&this.gl.renderer.setFrontFace(this.frontFace===this.gl.CCW?this.gl.CW:this.gl.CCW)}remove(){this.gl.deleteProgram(this.program)}};function it(e,t,i,s){s=s.length?Ie(s):s;let r=e.renderer.state.uniformLocations.get(i);if(s.length)if(r===void 0||r.length!==s.length)e.renderer.state.uniformLocations.set(i,s.slice(0));else{if(Ue(r,s))return;r.set?r.set(s):Be(r,s),e.renderer.state.uniformLocations.set(i,r)}else{if(r===s)return;e.renderer.state.uniformLocations.set(i,s)}switch(t){case 5126:return s.length?e.uniform1fv(i,s):e.uniform1f(i,s);case 35664:return e.uniform2fv(i,s);case 35665:return e.uniform3fv(i,s);case 35666:return e.uniform4fv(i,s);case 35670:case 5124:case 35678:case 36306:case 35680:case 36289:return s.length?e.uniform1iv(i,s):e.uniform1i(i,s);case 35671:case 35667:return e.uniform2iv(i,s);case 35672:case 35668:return e.uniform3iv(i,s);case 35673:case 35669:return e.uniform4iv(i,s);case 35674:return e.uniformMatrix2fv(i,!1,s);case 35675:return e.uniformMatrix3fv(i,!1,s);case 35676:return e.uniformMatrix4fv(i,!1,s)}}function Ct(e){let t=e.split(`
+`);for(let i=0;i<t.length;i++)t[i]=i+1+": "+t[i];return t.join(`
+`)}function Ie(e){let t=e.length,i=e[0].length;if(i===void 0)return e;let s=t*i,r=bt[s];r||(bt[s]=r=new Float32Array(s));for(let n=0;n<t;n++)r.set(e[n],n*i);return r}function Ue(e,t){if(e.length!==t.length)return!1;for(let i=0,s=e.length;i<s;i++)if(e[i]!==t[i])return!1;return!0}function Be(e,t){for(let i=0,s=e.length;i<s;i++)e[i]=t[i]}var st=0;function Nt(e){st>100||(console.warn(e),st++,st>100&&console.warn("More than 100 program warnings - stopping logs."))}function Dt(e,t){return e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e}function zt(e,t,i,s,r){return e[0]=t,e[1]=i,e[2]=s,e[3]=r,e}function Lt(e,t){let i=t[0],s=t[1],r=t[2],n=t[3],h=i*i+s*s+r*r+n*n;return h>0&&(h=1/Math.sqrt(h)),e[0]=i*h,e[1]=s*h,e[2]=r*h,e[3]=n*h,e}function Ot(e,t){return e[0]*t[0]+e[1]*t[1]+e[2]*t[2]+e[3]*t[3]}function It(e){return e[0]=0,e[1]=0,e[2]=0,e[3]=1,e}function Ut(e,t,i){i=i*.5;let s=Math.sin(i);return e[0]=s*t[0],e[1]=s*t[1],e[2]=s*t[2],e[3]=Math.cos(i),e}function rt(e,t,i){let s=t[0],r=t[1],n=t[2],h=t[3],l=i[0],a=i[1],c=i[2],f=i[3];return e[0]=s*f+h*l+r*c-n*a,e[1]=r*f+h*a+n*l-s*c,e[2]=n*f+h*c+s*a-r*l,e[3]=h*f-s*l-r*a-n*c,e}function Bt(e,t,i){i*=.5;let s=t[0],r=t[1],n=t[2],h=t[3],l=Math.sin(i),a=Math.cos(i);return e[0]=s*a+h*l,e[1]=r*a+n*l,e[2]=n*a-r*l,e[3]=h*a-s*l,e}function Pt(e,t,i){i*=.5;let s=t[0],r=t[1],n=t[2],h=t[3],l=Math.sin(i),a=Math.cos(i);return e[0]=s*a-n*l,e[1]=r*a+h*l,e[2]=n*a+s*l,e[3]=h*a-r*l,e}function Vt(e,t,i){i*=.5;let s=t[0],r=t[1],n=t[2],h=t[3],l=Math.sin(i),a=Math.cos(i);return e[0]=s*a+r*l,e[1]=r*a-s*l,e[2]=n*a+h*l,e[3]=h*a-n*l,e}function vt(e,t,i,s){let r=t[0],n=t[1],h=t[2],l=t[3],a=i[0],c=i[1],f=i[2],d=i[3],g,p,x,u,o;return p=r*a+n*c+h*f+l*d,p<0&&(p=-p,a=-a,c=-c,f=-f,d=-d),1-p>1e-6?(g=Math.acos(p),x=Math.sin(g),u=Math.sin((1-s)*g)/x,o=Math.sin(s*g)/x):(u=1-s,o=s),e[0]=u*r+o*a,e[1]=u*n+o*c,e[2]=u*h+o*f,e[3]=u*l+o*d,e}function Xt(e,t){let i=t[0],s=t[1],r=t[2],n=t[3],h=i*i+s*s+r*r+n*n,l=h?1/h:0;return e[0]=-i*l,e[1]=-s*l,e[2]=-r*l,e[3]=n*l,e}function Gt(e,t){return e[0]=-t[0],e[1]=-t[1],e[2]=-t[2],e[3]=t[3],e}function qt(e,t){let i=t[0]+t[4]+t[8],s;if(i>0)s=Math.sqrt(i+1),e[3]=.5*s,s=.5/s,e[0]=(t[5]-t[7])*s,e[1]=(t[6]-t[2])*s,e[2]=(t[1]-t[3])*s;else{let r=0;t[4]>t[0]&&(r=1),t[8]>t[r*3+r]&&(r=2);let n=(r+1)%3,h=(r+2)%3;s=Math.sqrt(t[r*3+r]-t[n*3+n]-t[h*3+h]+1),e[r]=.5*s,s=.5/s,e[3]=(t[n*3+h]-t[h*3+n])*s,e[n]=(t[n*3+r]+t[r*3+n])*s,e[h]=(t[h*3+r]+t[r*3+h])*s}return e}function Yt(e,t,i="YXZ"){let s=Math.sin(t[0]*.5),r=Math.cos(t[0]*.5),n=Math.sin(t[1]*.5),h=Math.cos(t[1]*.5),l=Math.sin(t[2]*.5),a=Math.cos(t[2]*.5);return i==="XYZ"?(e[0]=s*h*a+r*n*l,e[1]=r*n*a-s*h*l,e[2]=r*h*l+s*n*a,e[3]=r*h*a-s*n*l):i==="YXZ"?(e[0]=s*h*a+r*n*l,e[1]=r*n*a-s*h*l,e[2]=r*h*l-s*n*a,e[3]=r*h*a+s*n*l):i==="ZXY"?(e[0]=s*h*a-r*n*l,e[1]=r*n*a+s*h*l,e[2]=r*h*l+s*n*a,e[3]=r*h*a-s*n*l):i==="ZYX"?(e[0]=s*h*a-r*n*l,e[1]=r*n*a+s*h*l,e[2]=r*h*l-s*n*a,e[3]=r*h*a+s*n*l):i==="YZX"?(e[0]=s*h*a+r*n*l,e[1]=r*n*a+s*h*l,e[2]=r*h*l-s*n*a,e[3]=r*h*a-s*n*l):i==="XZY"&&(e[0]=s*h*a-r*n*l,e[1]=r*n*a-s*h*l,e[2]=r*h*l+s*n*a,e[3]=r*h*a+s*n*l),e}var kt=Dt,Wt=zt;var Ht=Ot;var Qt=Lt;var X=class extends Array{constructor(t=0,i=0,s=0,r=1){super(t,i,s,r),this.onChange=()=>{},this._target=this;let n=["0","1","2","3"];return new Proxy(this,{set(h,l){let a=Reflect.set(...arguments);return a&&n.includes(l)&&h.onChange(),a}})}get x(){return this[0]}get y(){return this[1]}get z(){return this[2]}get w(){return this[3]}set x(t){this._target[0]=t,this.onChange()}set y(t){this._target[1]=t,this.onChange()}set z(t){this._target[2]=t,this.onChange()}set w(t){this._target[3]=t,this.onChange()}identity(){return It(this._target),this.onChange(),this}set(t,i,s,r){return t.length?this.copy(t):(Wt(this._target,t,i,s,r),this.onChange(),this)}rotateX(t){return Bt(this._target,this._target,t),this.onChange(),this}rotateY(t){return Pt(this._target,this._target,t),this.onChange(),this}rotateZ(t){return Vt(this._target,this._target,t),this.onChange(),this}inverse(t=this._target){return Xt(this._target,t),this.onChange(),this}conjugate(t=this._target){return Gt(this._target,t),this.onChange(),this}copy(t){return kt(this._target,t),this.onChange(),this}normalize(t=this._target){return Qt(this._target,t),this.onChange(),this}multiply(t,i){return i?rt(this._target,t,i):rt(this._target,this._target,t),this.onChange(),this}dot(t){return Ht(this._target,t)}fromMatrix3(t){return qt(this._target,t),this.onChange(),this}fromEuler(t,i){return Yt(this._target,t,t.order),i||this.onChange(),this}fromAxisAngle(t,i){return Ut(this._target,t,i),this.onChange(),this}slerp(t,i){return vt(this._target,this._target,t,i),this.onChange(),this}fromArray(t,i=0){return this._target[0]=t[i],this._target[1]=t[i+1],this._target[2]=t[i+2],this._target[3]=t[i+3],this.onChange(),this}toArray(t=[],i=0){return t[i]=this[0],t[i+1]=this[1],t[i+2]=this[2],t[i+3]=this[3],t}};var ve=1e-6;function Zt(e,t){return e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5],e[6]=t[6],e[7]=t[7],e[8]=t[8],e[9]=t[9],e[10]=t[10],e[11]=t[11],e[12]=t[12],e[13]=t[13],e[14]=t[14],e[15]=t[15],e}function jt(e,t,i,s,r,n,h,l,a,c,f,d,g,p,x,u,o){return e[0]=t,e[1]=i,e[2]=s,e[3]=r,e[4]=n,e[5]=h,e[6]=l,e[7]=a,e[8]=c,e[9]=f,e[10]=d,e[11]=g,e[12]=p,e[13]=x,e[14]=u,e[15]=o,e}function $t(e){return e[0]=1,e[1]=0,e[2]=0,e[3]=0,e[4]=0,e[5]=1,e[6]=0,e[7]=0,e[8]=0,e[9]=0,e[10]=1,e[11]=0,e[12]=0,e[13]=0,e[14]=0,e[15]=1,e}function Kt(e,t){let i=t[0],s=t[1],r=t[2],n=t[3],h=t[4],l=t[5],a=t[6],c=t[7],f=t[8],d=t[9],g=t[10],p=t[11],x=t[12],u=t[13],o=t[14],E=t[15],T=i*l-s*h,_=i*a-r*h,m=i*c-n*h,M=s*a-r*l,F=s*c-n*l,A=r*c-n*a,S=f*u-d*x,b=f*o-g*x,R=f*E-p*x,C=d*o-g*u,w=d*E-p*u,N=g*E-p*o,y=T*N-_*w+m*C+M*R-F*b+A*S;return y?(y=1/y,e[0]=(l*N-a*w+c*C)*y,e[1]=(r*w-s*N-n*C)*y,e[2]=(u*A-o*F+E*M)*y,e[3]=(g*F-d*A-p*M)*y,e[4]=(a*R-h*N-c*b)*y,e[5]=(i*N-r*R+n*b)*y,e[6]=(o*m-x*A-E*_)*y,e[7]=(f*A-g*m+p*_)*y,e[8]=(h*w-l*R+c*S)*y,e[9]=(s*R-i*w-n*S)*y,e[10]=(x*F-u*m+E*T)*y,e[11]=(d*m-f*F-p*T)*y,e[12]=(l*b-h*C-a*S)*y,e[13]=(i*C-s*b+r*S)*y,e[14]=(u*_-x*M-o*T)*y,e[15]=(f*M-d*_+g*T)*y,e):null}function nt(e){let t=e[0],i=e[1],s=e[2],r=e[3],n=e[4],h=e[5],l=e[6],a=e[7],c=e[8],f=e[9],d=e[10],g=e[11],p=e[12],x=e[13],u=e[14],o=e[15],E=t*h-i*n,T=t*l-s*n,_=t*a-r*n,m=i*l-s*h,M=i*a-r*h,F=s*a-r*l,A=c*x-f*p,S=c*u-d*p,b=c*o-g*p,R=f*u-d*x,C=f*o-g*x,w=d*o-g*u;return E*w-T*C+_*R+m*b-M*S+F*A}function ht(e,t,i){let s=t[0],r=t[1],n=t[2],h=t[3],l=t[4],a=t[5],c=t[6],f=t[7],d=t[8],g=t[9],p=t[10],x=t[11],u=t[12],o=t[13],E=t[14],T=t[15],_=i[0],m=i[1],M=i[2],F=i[3];return e[0]=_*s+m*l+M*d+F*u,e[1]=_*r+m*a+M*g+F*o,e[2]=_*n+m*c+M*p+F*E,e[3]=_*h+m*f+M*x+F*T,_=i[4],m=i[5],M=i[6],F=i[7],e[4]=_*s+m*l+M*d+F*u,e[5]=_*r+m*a+M*g+F*o,e[6]=_*n+m*c+M*p+F*E,e[7]=_*h+m*f+M*x+F*T,_=i[8],m=i[9],M=i[10],F=i[11],e[8]=_*s+m*l+M*d+F*u,e[9]=_*r+m*a+M*g+F*o,e[10]=_*n+m*c+M*p+F*E,e[11]=_*h+m*f+M*x+F*T,_=i[12],m=i[13],M=i[14],F=i[15],e[12]=_*s+m*l+M*d+F*u,e[13]=_*r+m*a+M*g+F*o,e[14]=_*n+m*c+M*p+F*E,e[15]=_*h+m*f+M*x+F*T,e}function Jt(e,t,i){let s=i[0],r=i[1],n=i[2],h,l,a,c,f,d,g,p,x,u,o,E;return t===e?(e[12]=t[0]*s+t[4]*r+t[8]*n+t[12],e[13]=t[1]*s+t[5]*r+t[9]*n+t[13],e[14]=t[2]*s+t[6]*r+t[10]*n+t[14],e[15]=t[3]*s+t[7]*r+t[11]*n+t[15]):(h=t[0],l=t[1],a=t[2],c=t[3],f=t[4],d=t[5],g=t[6],p=t[7],x=t[8],u=t[9],o=t[10],E=t[11],e[0]=h,e[1]=l,e[2]=a,e[3]=c,e[4]=f,e[5]=d,e[6]=g,e[7]=p,e[8]=x,e[9]=u,e[10]=o,e[11]=E,e[12]=h*s+f*r+x*n+t[12],e[13]=l*s+d*r+u*n+t[13],e[14]=a*s+g*r+o*n+t[14],e[15]=c*s+p*r+E*n+t[15]),e}function te(e,t,i){let s=i[0],r=i[1],n=i[2];return e[0]=t[0]*s,e[1]=t[1]*s,e[2]=t[2]*s,e[3]=t[3]*s,e[4]=t[4]*r,e[5]=t[5]*r,e[6]=t[6]*r,e[7]=t[7]*r,e[8]=t[8]*n,e[9]=t[9]*n,e[10]=t[10]*n,e[11]=t[11]*n,e[12]=t[12],e[13]=t[13],e[14]=t[14],e[15]=t[15],e}function ee(e,t,i,s){let r=s[0],n=s[1],h=s[2],l=Math.hypot(r,n,h),a,c,f,d,g,p,x,u,o,E,T,_,m,M,F,A,S,b,R,C,w,N,y,I;return Math.abs(l)<ve?null:(l=1/l,r*=l,n*=l,h*=l,a=Math.sin(i),c=Math.cos(i),f=1-c,d=t[0],g=t[1],p=t[2],x=t[3],u=t[4],o=t[5],E=t[6],T=t[7],_=t[8],m=t[9],M=t[10],F=t[11],A=r*r*f+c,S=n*r*f+h*a,b=h*r*f-n*a,R=r*n*f-h*a,C=n*n*f+c,w=h*n*f+r*a,N=r*h*f+n*a,y=n*h*f-r*a,I=h*h*f+c,e[0]=d*A+u*S+_*b,e[1]=g*A+o*S+m*b,e[2]=p*A+E*S+M*b,e[3]=x*A+T*S+F*b,e[4]=d*R+u*C+_*w,e[5]=g*R+o*C+m*w,e[6]=p*R+E*C+M*w,e[7]=x*R+T*C+F*w,e[8]=d*N+u*y+_*I,e[9]=g*N+o*y+m*I,e[10]=p*N+E*y+M*I,e[11]=x*N+T*y+F*I,t!==e&&(e[12]=t[12],e[13]=t[13],e[14]=t[14],e[15]=t[15]),e)}function ie(e,t){return e[0]=t[12],e[1]=t[13],e[2]=t[14],e}function lt(e,t){let i=t[0],s=t[1],r=t[2],n=t[4],h=t[5],l=t[6],a=t[8],c=t[9],f=t[10];return e[0]=Math.hypot(i,s,r),e[1]=Math.hypot(n,h,l),e[2]=Math.hypot(a,c,f),e}function se(e){let t=e[0],i=e[1],s=e[2],r=e[4],n=e[5],h=e[6],l=e[8],a=e[9],c=e[10],f=t*t+i*i+s*s,d=r*r+n*n+h*h,g=l*l+a*a+c*c;return Math.sqrt(Math.max(f,d,g))}var at=(function(){let e=[1,1,1];return function(t,i){let s=e;lt(s,i);let r=1/s[0],n=1/s[1],h=1/s[2],l=i[0]*r,a=i[1]*n,c=i[2]*h,f=i[4]*r,d=i[5]*n,g=i[6]*h,p=i[8]*r,x=i[9]*n,u=i[10]*h,o=l+d+u,E=0;return o>0?(E=Math.sqrt(o+1)*2,t[3]=.25*E,t[0]=(g-x)/E,t[1]=(p-c)/E,t[2]=(a-f)/E):l>d&&l>u?(E=Math.sqrt(1+l-d-u)*2,t[3]=(g-x)/E,t[0]=.25*E,t[1]=(a+f)/E,t[2]=(p+c)/E):d>u?(E=Math.sqrt(1+d-l-u)*2,t[3]=(p-c)/E,t[0]=(a+f)/E,t[1]=.25*E,t[2]=(g+x)/E):(E=Math.sqrt(1+u-l-d)*2,t[3]=(a-f)/E,t[0]=(p+c)/E,t[1]=(g+x)/E,t[2]=.25*E),t}})();function re(e,t,i,s){let r=L([e[0],e[1],e[2]]),n=L([e[4],e[5],e[6]]),h=L([e[8],e[9],e[10]]);nt(e)<0&&(r=-r),i[0]=e[12],i[1]=e[13],i[2]=e[14];let a=e.slice(),c=1/r,f=1/n,d=1/h;a[0]*=c,a[1]*=c,a[2]*=c,a[4]*=f,a[5]*=f,a[6]*=f,a[8]*=d,a[9]*=d,a[10]*=d,at(t,a),s[0]=r,s[1]=n,s[2]=h}function ne(e,t,i,s){let r=e,n=t[0],h=t[1],l=t[2],a=t[3],c=n+n,f=h+h,d=l+l,g=n*c,p=n*f,x=n*d,u=h*f,o=h*d,E=l*d,T=a*c,_=a*f,m=a*d,M=s[0],F=s[1],A=s[2];return r[0]=(1-(u+E))*M,r[1]=(p+m)*M,r[2]=(x-_)*M,r[3]=0,r[4]=(p-m)*F,r[5]=(1-(g+E))*F,r[6]=(o+T)*F,r[7]=0,r[8]=(x+_)*A,r[9]=(o-T)*A,r[10]=(1-(g+u))*A,r[11]=0,r[12]=i[0],r[13]=i[1],r[14]=i[2],r[15]=1,r}function he(e,t){let i=t[0],s=t[1],r=t[2],n=t[3],h=i+i,l=s+s,a=r+r,c=i*h,f=s*h,d=s*l,g=r*h,p=r*l,x=r*a,u=n*h,o=n*l,E=n*a;return e[0]=1-d-x,e[1]=f+E,e[2]=g-o,e[3]=0,e[4]=f-E,e[5]=1-c-x,e[6]=p+u,e[7]=0,e[8]=g+o,e[9]=p-u,e[10]=1-c-d,e[11]=0,e[12]=0,e[13]=0,e[14]=0,e[15]=1,e}function le(e,t,i,s,r){let n=1/Math.tan(t/2),h=1/(s-r);return e[0]=n/i,e[1]=0,e[2]=0,e[3]=0,e[4]=0,e[5]=n,e[6]=0,e[7]=0,e[8]=0,e[9]=0,e[10]=(r+s)*h,e[11]=-1,e[12]=0,e[13]=0,e[14]=2*r*s*h,e[15]=0,e}function ae(e,t,i,s,r,n,h){let l=1/(t-i),a=1/(s-r),c=1/(n-h);return e[0]=-2*l,e[1]=0,e[2]=0,e[3]=0,e[4]=0,e[5]=-2*a,e[6]=0,e[7]=0,e[8]=0,e[9]=0,e[10]=2*c,e[11]=0,e[12]=(t+i)*l,e[13]=(r+s)*a,e[14]=(h+n)*c,e[15]=1,e}function ce(e,t,i,s){let r=t[0],n=t[1],h=t[2],l=s[0],a=s[1],c=s[2],f=r-i[0],d=n-i[1],g=h-i[2],p=f*f+d*d+g*g;p===0?g=1:(p=1/Math.sqrt(p),f*=p,d*=p,g*=p);let x=a*g-c*d,u=c*f-l*g,o=l*d-a*f;return p=x*x+u*u+o*o,p===0&&(c?l+=1e-6:a?c+=1e-6:a+=1e-6,x=a*g-c*d,u=c*f-l*g,o=l*d-a*f,p=x*x+u*u+o*o),p=1/Math.sqrt(p),x*=p,u*=p,o*=p,e[0]=x,e[1]=u,e[2]=o,e[3]=0,e[4]=d*o-g*u,e[5]=g*x-f*o,e[6]=f*u-d*x,e[7]=0,e[8]=f,e[9]=d,e[10]=g,e[11]=0,e[12]=r,e[13]=n,e[14]=h,e[15]=1,e}function ct(e,t,i){return e[0]=t[0]+i[0],e[1]=t[1]+i[1],e[2]=t[2]+i[2],e[3]=t[3]+i[3],e[4]=t[4]+i[4],e[5]=t[5]+i[5],e[6]=t[6]+i[6],e[7]=t[7]+i[7],e[8]=t[8]+i[8],e[9]=t[9]+i[9],e[10]=t[10]+i[10],e[11]=t[11]+i[11],e[12]=t[12]+i[12],e[13]=t[13]+i[13],e[14]=t[14]+i[14],e[15]=t[15]+i[15],e}function ft(e,t,i){return e[0]=t[0]-i[0],e[1]=t[1]-i[1],e[2]=t[2]-i[2],e[3]=t[3]-i[3],e[4]=t[4]-i[4],e[5]=t[5]-i[5],e[6]=t[6]-i[6],e[7]=t[7]-i[7],e[8]=t[8]-i[8],e[9]=t[9]-i[9],e[10]=t[10]-i[10],e[11]=t[11]-i[11],e[12]=t[12]-i[12],e[13]=t[13]-i[13],e[14]=t[14]-i[14],e[15]=t[15]-i[15],e}function fe(e,t,i){return e[0]=t[0]*i,e[1]=t[1]*i,e[2]=t[2]*i,e[3]=t[3]*i,e[4]=t[4]*i,e[5]=t[5]*i,e[6]=t[6]*i,e[7]=t[7]*i,e[8]=t[8]*i,e[9]=t[9]*i,e[10]=t[10]*i,e[11]=t[11]*i,e[12]=t[12]*i,e[13]=t[13]*i,e[14]=t[14]*i,e[15]=t[15]*i,e}var z=class extends Array{constructor(t=1,i=0,s=0,r=0,n=0,h=1,l=0,a=0,c=0,f=0,d=1,g=0,p=0,x=0,u=0,o=1){return super(t,i,s,r,n,h,l,a,c,f,d,g,p,x,u,o),this}get x(){return this[12]}get y(){return this[13]}get z(){return this[14]}get w(){return this[15]}set x(t){this[12]=t}set y(t){this[13]=t}set z(t){this[14]=t}set w(t){this[15]=t}set(t,i,s,r,n,h,l,a,c,f,d,g,p,x,u,o){return t.length?this.copy(t):(jt(this,t,i,s,r,n,h,l,a,c,f,d,g,p,x,u,o),this)}translate(t,i=this){return Jt(this,i,t),this}rotate(t,i,s=this){return ee(this,s,t,i),this}scale(t,i=this){return te(this,i,typeof t=="number"?[t,t,t]:t),this}add(t,i){return i?ct(this,t,i):ct(this,this,t),this}sub(t,i){return i?ft(this,t,i):ft(this,this,t),this}multiply(t,i){return t.length?i?ht(this,t,i):ht(this,this,t):fe(this,this,t),this}identity(){return $t(this),this}copy(t){return Zt(this,t),this}fromPerspective({fov:t,aspect:i,near:s,far:r}={}){return le(this,t,i,s,r),this}fromOrthogonal({left:t,right:i,bottom:s,top:r,near:n,far:h}){return ae(this,t,i,s,r,n,h),this}fromQuaternion(t){return he(this,t),this}setPosition(t){return this.x=t[0],this.y=t[1],this.z=t[2],this}inverse(t=this){return Kt(this,t),this}compose(t,i,s){return ne(this,t,i,s),this}decompose(t,i,s){return re(this,t,i,s),this}getRotation(t){return at(t,this),this}getTranslation(t){return ie(t,this),this}getScaling(t){return lt(t,this),this}getMaxScaleOnAxis(){return se(this)}lookAt(t,i,s){return ce(this,t,i,s),this}determinant(){return nt(this)}fromArray(t,i=0){return this[0]=t[i],this[1]=t[i+1],this[2]=t[i+2],this[3]=t[i+3],this[4]=t[i+4],this[5]=t[i+5],this[6]=t[i+6],this[7]=t[i+7],this[8]=t[i+8],this[9]=t[i+9],this[10]=t[i+10],this[11]=t[i+11],this[12]=t[i+12],this[13]=t[i+13],this[14]=t[i+14],this[15]=t[i+15],this}toArray(t=[],i=0){return t[i]=this[0],t[i+1]=this[1],t[i+2]=this[2],t[i+3]=this[3],t[i+4]=this[4],t[i+5]=this[5],t[i+6]=this[6],t[i+7]=this[7],t[i+8]=this[8],t[i+9]=this[9],t[i+10]=this[10],t[i+11]=this[11],t[i+12]=this[12],t[i+13]=this[13],t[i+14]=this[14],t[i+15]=this[15],t}};function ge(e,t,i="YXZ"){return i==="XYZ"?(e[1]=Math.asin(Math.min(Math.max(t[8],-1),1)),Math.abs(t[8])<.99999?(e[0]=Math.atan2(-t[9],t[10]),e[2]=Math.atan2(-t[4],t[0])):(e[0]=Math.atan2(t[6],t[5]),e[2]=0)):i==="YXZ"?(e[0]=Math.asin(-Math.min(Math.max(t[9],-1),1)),Math.abs(t[9])<.99999?(e[1]=Math.atan2(t[8],t[10]),e[2]=Math.atan2(t[1],t[5])):(e[1]=Math.atan2(-t[2],t[0]),e[2]=0)):i==="ZXY"?(e[0]=Math.asin(Math.min(Math.max(t[6],-1),1)),Math.abs(t[6])<.99999?(e[1]=Math.atan2(-t[2],t[10]),e[2]=Math.atan2(-t[4],t[5])):(e[1]=0,e[2]=Math.atan2(t[1],t[0]))):i==="ZYX"?(e[1]=Math.asin(-Math.min(Math.max(t[2],-1),1)),Math.abs(t[2])<.99999?(e[0]=Math.atan2(t[6],t[10]),e[2]=Math.atan2(t[1],t[0])):(e[0]=0,e[2]=Math.atan2(-t[4],t[5]))):i==="YZX"?(e[2]=Math.asin(Math.min(Math.max(t[1],-1),1)),Math.abs(t[1])<.99999?(e[0]=Math.atan2(-t[9],t[5]),e[1]=Math.atan2(-t[2],t[0])):(e[0]=0,e[1]=Math.atan2(t[8],t[10]))):i==="XZY"&&(e[2]=Math.asin(-Math.min(Math.max(t[4],-1),1)),Math.abs(t[4])<.99999?(e[0]=Math.atan2(t[6],t[5]),e[1]=Math.atan2(t[8],t[0])):(e[0]=Math.atan2(-t[9],t[10]),e[1]=0)),e}var de=new z,G=class extends Array{constructor(t=0,i=t,s=t,r="YXZ"){super(t,i,s),this.order=r,this.onChange=()=>{},this._target=this;let n=["0","1","2"];return new Proxy(this,{set(h,l){let a=Reflect.set(...arguments);return a&&n.includes(l)&&h.onChange(),a}})}get x(){return this[0]}get y(){return this[1]}get z(){return this[2]}set x(t){this._target[0]=t,this.onChange()}set y(t){this._target[1]=t,this.onChange()}set z(t){this._target[2]=t,this.onChange()}set(t,i=t,s=t){return t.length?this.copy(t):(this._target[0]=t,this._target[1]=i,this._target[2]=s,this.onChange(),this)}copy(t){return this._target[0]=t[0],this._target[1]=t[1],this._target[2]=t[2],this.onChange(),this}reorder(t){return this._target.order=t,this.onChange(),this}fromRotationMatrix(t,i=this.order){return ge(this._target,t,i),this.onChange(),this}fromQuaternion(t,i=this.order,s){return de.fromQuaternion(t),this._target.fromRotationMatrix(de,i),s||this.onChange(),this}fromArray(t,i=0){return this._target[0]=t[i],this._target[1]=t[i+1],this._target[2]=t[i+2],this}toArray(t=[],i=0){return t[i]=this[0],t[i+1]=this[1],t[i+2]=this[2],t}};var q=class{constructor(){this.parent=null,this.children=[],this.visible=!0,this.matrix=new z,this.worldMatrix=new z,this.matrixAutoUpdate=!0,this.worldMatrixNeedsUpdate=!1,this.position=new D,this.quaternion=new X,this.scale=new D(1),this.rotation=new G,this.up=new D(0,1,0),this.rotation._target.onChange=()=>this.quaternion.fromEuler(this.rotation,!0),this.quaternion._target.onChange=()=>this.rotation.fromQuaternion(this.quaternion,void 0,!0)}setParent(t,i=!0){this.parent&&t!==this.parent&&this.parent.removeChild(this,!1),this.parent=t,i&&t&&t.addChild(this,!1)}addChild(t,i=!0){~this.children.indexOf(t)||this.children.push(t),i&&t.setParent(this,!1)}removeChild(t,i=!0){~this.children.indexOf(t)&&this.children.splice(this.children.indexOf(t),1),i&&t.setParent(null,!1)}updateMatrixWorld(t){this.matrixAutoUpdate&&this.updateMatrix(),(this.worldMatrixNeedsUpdate||t)&&(this.parent===null?this.worldMatrix.copy(this.matrix):this.worldMatrix.multiply(this.parent.worldMatrix,this.matrix),this.worldMatrixNeedsUpdate=!1,t=!0);for(let i=0,s=this.children.length;i<s;i++)this.children[i].updateMatrixWorld(t)}updateMatrix(){this.matrix.compose(this.quaternion,this.position,this.scale),this.worldMatrixNeedsUpdate=!0}traverse(t){if(!t(this))for(let i=0,s=this.children.length;i<s;i++)this.children[i].traverse(t)}decompose(){this.matrix.decompose(this.quaternion._target,this.position,this.scale),this.rotation.fromQuaternion(this.quaternion)}lookAt(t,i=!1){i?this.matrix.lookAt(this.position,t,this.up):this.matrix.lookAt(t,this.position,this.up),this.matrix.getRotation(this.quaternion._target),this.rotation.fromQuaternion(this.quaternion)}};function pe(e,t){return e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[4],e[4]=t[5],e[5]=t[6],e[6]=t[8],e[7]=t[9],e[8]=t[10],e}function xe(e,t){let i=t[0],s=t[1],r=t[2],n=t[3],h=i+i,l=s+s,a=r+r,c=i*h,f=s*h,d=s*l,g=r*h,p=r*l,x=r*a,u=n*h,o=n*l,E=n*a;return e[0]=1-d-x,e[3]=f-E,e[6]=g+o,e[1]=f+E,e[4]=1-c-x,e[7]=p-u,e[2]=g-o,e[5]=p+u,e[8]=1-c-d,e}function ue(e,t){return e[0]=t[0],e[1]=t[1],e[2]=t[2],e[3]=t[3],e[4]=t[4],e[5]=t[5],e[6]=t[6],e[7]=t[7],e[8]=t[8],e}function oe(e,t,i,s,r,n,h,l,a,c){return e[0]=t,e[1]=i,e[2]=s,e[3]=r,e[4]=n,e[5]=h,e[6]=l,e[7]=a,e[8]=c,e}function Ee(e){return e[0]=1,e[1]=0,e[2]=0,e[3]=0,e[4]=1,e[5]=0,e[6]=0,e[7]=0,e[8]=1,e}function me(e,t){let i=t[0],s=t[1],r=t[2],n=t[3],h=t[4],l=t[5],a=t[6],c=t[7],f=t[8],d=f*h-l*c,g=-f*n+l*a,p=c*n-h*a,x=i*d+s*g+r*p;return x?(x=1/x,e[0]=d*x,e[1]=(-f*s+r*c)*x,e[2]=(l*s-r*h)*x,e[3]=g*x,e[4]=(f*i-r*a)*x,e[5]=(-l*i+r*n)*x,e[6]=p*x,e[7]=(-c*i+s*a)*x,e[8]=(h*i-s*n)*x,e):null}function gt(e,t,i){let s=t[0],r=t[1],n=t[2],h=t[3],l=t[4],a=t[5],c=t[6],f=t[7],d=t[8],g=i[0],p=i[1],x=i[2],u=i[3],o=i[4],E=i[5],T=i[6],_=i[7],m=i[8];return e[0]=g*s+p*h+x*c,e[1]=g*r+p*l+x*f,e[2]=g*n+p*a+x*d,e[3]=u*s+o*h+E*c,e[4]=u*r+o*l+E*f,e[5]=u*n+o*a+E*d,e[6]=T*s+_*h+m*c,e[7]=T*r+_*l+m*f,e[8]=T*n+_*a+m*d,e}function _e(e,t,i){let s=t[0],r=t[1],n=t[2],h=t[3],l=t[4],a=t[5],c=t[6],f=t[7],d=t[8],g=i[0],p=i[1];return e[0]=s,e[1]=r,e[2]=n,e[3]=h,e[4]=l,e[5]=a,e[6]=g*s+p*h+c,e[7]=g*r+p*l+f,e[8]=g*n+p*a+d,e}function Fe(e,t,i){let s=t[0],r=t[1],n=t[2],h=t[3],l=t[4],a=t[5],c=t[6],f=t[7],d=t[8],g=Math.sin(i),p=Math.cos(i);return e[0]=p*s+g*h,e[1]=p*r+g*l,e[2]=p*n+g*a,e[3]=p*h-g*s,e[4]=p*l-g*r,e[5]=p*a-g*n,e[6]=c,e[7]=f,e[8]=d,e}function Me(e,t,i){let s=i[0],r=i[1];return e[0]=s*t[0],e[1]=s*t[1],e[2]=s*t[2],e[3]=r*t[3],e[4]=r*t[4],e[5]=r*t[5],e[6]=t[6],e[7]=t[7],e[8]=t[8],e}function ye(e,t){let i=t[0],s=t[1],r=t[2],n=t[3],h=t[4],l=t[5],a=t[6],c=t[7],f=t[8],d=t[9],g=t[10],p=t[11],x=t[12],u=t[13],o=t[14],E=t[15],T=i*l-s*h,_=i*a-r*h,m=i*c-n*h,M=s*a-r*l,F=s*c-n*l,A=r*c-n*a,S=f*u-d*x,b=f*o-g*x,R=f*E-p*x,C=d*o-g*u,w=d*E-p*u,N=g*E-p*o,y=T*N-_*w+m*C+M*R-F*b+A*S;return y?(y=1/y,e[0]=(l*N-a*w+c*C)*y,e[1]=(a*R-h*N-c*b)*y,e[2]=(h*w-l*R+c*S)*y,e[3]=(r*w-s*N-n*C)*y,e[4]=(i*N-r*R+n*b)*y,e[5]=(s*R-i*w-n*S)*y,e[6]=(u*A-o*F+E*M)*y,e[7]=(o*m-x*A-E*_)*y,e[8]=(x*F-u*m+E*T)*y,e):null}var Y=class extends Array{constructor(t=1,i=0,s=0,r=0,n=1,h=0,l=0,a=0,c=1){return super(t,i,s,r,n,h,l,a,c),this}set(t,i,s,r,n,h,l,a,c){return t.length?this.copy(t):(oe(this,t,i,s,r,n,h,l,a,c),this)}translate(t,i=this){return _e(this,i,t),this}rotate(t,i=this){return Fe(this,i,t),this}scale(t,i=this){return Me(this,i,t),this}multiply(t,i){return i?gt(this,t,i):gt(this,this,t),this}identity(){return Ee(this),this}copy(t){return ue(this,t),this}fromMatrix4(t){return pe(this,t),this}fromQuaternion(t){return xe(this,t),this}fromBasis(t,i,s){return this.set(t[0],t[1],t[2],i[0],i[1],i[2],s[0],s[1],s[2]),this}inverse(t=this){return me(this,t),this}getNormalMatrix(t){return ye(this,t),this}};var Ye=0,k=class extends q{constructor(t,{geometry:i,program:s,mode:r=t.TRIANGLES,frustumCulled:n=!0,renderOrder:h=0}={}){super(),t.canvas||console.error("gl not passed as first argument to Mesh"),this.gl=t,this.id=Ye++,this.geometry=i,this.program=s,this.mode=r,this.frustumCulled=n,this.renderOrder=h,this.modelViewMatrix=new z,this.normalMatrix=new Y,this.beforeRenderCallbacks=[],this.afterRenderCallbacks=[]}onBeforeRender(t){return this.beforeRenderCallbacks.push(t),this}onAfterRender(t){return this.afterRenderCallbacks.push(t),this}draw({camera:t}={}){t&&(this.program.uniforms.modelMatrix||Object.assign(this.program.uniforms,{modelMatrix:{value:null},viewMatrix:{value:null},modelViewMatrix:{value:null},normalMatrix:{value:null},projectionMatrix:{value:null},cameraPosition:{value:null}}),this.program.uniforms.projectionMatrix.value=t.projectionMatrix,this.program.uniforms.cameraPosition.value=t.worldPosition,this.program.uniforms.viewMatrix.value=t.viewMatrix,this.modelViewMatrix.multiply(t.viewMatrix,this.worldMatrix),this.normalMatrix.getNormalMatrix(this.modelViewMatrix),this.program.uniforms.modelMatrix.value=this.worldMatrix,this.program.uniforms.modelViewMatrix.value=this.modelViewMatrix,this.program.uniforms.normalMatrix.value=this.normalMatrix),this.beforeRenderCallbacks.forEach(s=>s&&s({mesh:this,camera:t}));let i=this.program.cullFace&&this.worldMatrix.determinant()<0;this.program.use({flipFaces:i}),this.geometry.draw({mode:this.mode,program:this.program}),this.afterRenderCallbacks.forEach(s=>s&&s({mesh:this,camera:t}))}};var Te=new D,ke=1,We=1,Ae=!1,W=class{constructor(t,i={}){t.canvas||console.error("gl not passed as first argument to Geometry"),this.gl=t,this.attributes=i,this.id=ke++,this.VAOs={},this.drawRange={start:0,count:0},this.instancedCount=0,this.gl.renderer.bindVertexArray(null),this.gl.renderer.currentGeometry=null,this.glState=this.gl.renderer.state;for(let s in i)this.addAttribute(s,i[s])}addAttribute(t,i){if(this.attributes[t]=i,i.id=We++,i.size=i.size||1,i.type=i.type||(i.data.constructor===Float32Array?this.gl.FLOAT:i.data.constructor===Uint16Array?this.gl.UNSIGNED_SHORT:this.gl.UNSIGNED_INT),i.target=t==="index"?this.gl.ELEMENT_ARRAY_BUFFER:this.gl.ARRAY_BUFFER,i.normalized=i.normalized||!1,i.stride=i.stride||0,i.offset=i.offset||0,i.count=i.count||(i.stride?i.data.byteLength/i.stride:i.data.length/i.size),i.divisor=i.instanced||0,i.needsUpdate=!1,i.usage=i.usage||this.gl.STATIC_DRAW,i.buffer||this.updateAttribute(i),i.divisor){if(this.isInstanced=!0,this.instancedCount&&this.instancedCount!==i.count*i.divisor)return console.warn("geometry has multiple instanced buffers of different length"),this.instancedCount=Math.min(this.instancedCount,i.count*i.divisor);this.instancedCount=i.count*i.divisor}else t==="index"?this.drawRange.count=i.count:this.attributes.index||(this.drawRange.count=Math.max(this.drawRange.count,i.count))}updateAttribute(t){let i=!t.buffer;i&&(t.buffer=this.gl.createBuffer()),this.glState.boundBuffer!==t.buffer&&(this.gl.bindBuffer(t.target,t.buffer),this.glState.boundBuffer=t.buffer),i?this.gl.bufferData(t.target,t.data,t.usage):this.gl.bufferSubData(t.target,0,t.data),t.needsUpdate=!1}setIndex(t){this.addAttribute("index",t)}setDrawRange(t,i){this.drawRange.start=t,this.drawRange.count=i}setInstancedCount(t){this.instancedCount=t}createVAO(t){this.VAOs[t.attributeOrder]=this.gl.renderer.createVertexArray(),this.gl.renderer.bindVertexArray(this.VAOs[t.attributeOrder]),this.bindAttributes(t)}bindAttributes(t){t.attributeLocations.forEach((i,{name:s,type:r})=>{if(!this.attributes[s]){console.warn(`active attribute ${s} not being supplied`);return}let n=this.attributes[s];this.gl.bindBuffer(n.target,n.buffer),this.glState.boundBuffer=n.buffer;let h=1;r===35674&&(h=2),r===35675&&(h=3),r===35676&&(h=4);let l=n.size/h,a=h===1?0:h*h*4,c=h===1?0:h*4;for(let f=0;f<h;f++)this.gl.vertexAttribPointer(i+f,l,n.type,n.normalized,n.stride+a,n.offset+f*c),this.gl.enableVertexAttribArray(i+f),this.gl.renderer.vertexAttribDivisor(i+f,n.divisor)}),this.attributes.index&&this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER,this.attributes.index.buffer)}draw({program:t,mode:i=this.gl.TRIANGLES}){this.gl.renderer.currentGeometry!==`${this.id}_${t.attributeOrder}`&&(this.VAOs[t.attributeOrder]||this.createVAO(t),this.gl.renderer.bindVertexArray(this.VAOs[t.attributeOrder]),this.gl.renderer.currentGeometry=`${this.id}_${t.attributeOrder}`),t.attributeLocations.forEach((r,{name:n})=>{let h=this.attributes[n];h.needsUpdate&&this.updateAttribute(h)});let s=2;this.attributes.index?.type===this.gl.UNSIGNED_INT&&(s=4),this.isInstanced?this.attributes.index?this.gl.renderer.drawElementsInstanced(i,this.drawRange.count,this.attributes.index.type,this.attributes.index.offset+this.drawRange.start*s,this.instancedCount):this.gl.renderer.drawArraysInstanced(i,this.drawRange.start,this.drawRange.count,this.instancedCount):this.attributes.index?this.gl.drawElements(i,this.drawRange.count,this.attributes.index.type,this.attributes.index.offset+this.drawRange.start*s):this.gl.drawArrays(i,this.drawRange.start,this.drawRange.count)}getPosition(){let t=this.attributes.position;if(t.data)return t;if(!Ae)return console.warn("No position buffer data found to compute bounds"),Ae=!0}computeBoundingBox(t){t||(t=this.getPosition());let i=t.data,s=t.size;this.bounds||(this.bounds={min:new D,max:new D,center:new D,scale:new D,radius:1/0});let r=this.bounds.min,n=this.bounds.max,h=this.bounds.center,l=this.bounds.scale;r.set(1/0),n.set(-1/0);for(let a=0,c=i.length;a<c;a+=s){let f=i[a],d=i[a+1],g=i[a+2];r.x=Math.min(f,r.x),r.y=Math.min(d,r.y),r.z=Math.min(g,r.z),n.x=Math.max(f,n.x),n.y=Math.max(d,n.y),n.z=Math.max(g,n.z)}l.sub(n,r),h.add(r,n).divide(2)}computeBoundingSphere(t){t||(t=this.getPosition());let i=t.data,s=t.size;this.bounds||this.computeBoundingBox(t);let r=0;for(let n=0,h=i.length;n<h;n+=s)Te.fromArray(i,n),r=Math.max(r,this.bounds.center.squaredDistance(Te));this.bounds.radius=Math.sqrt(r)}remove(){for(let t in this.VAOs)this.gl.renderer.deleteVertexArray(this.VAOs[t]),delete this.VAOs[t];for(let t in this.attributes)this.gl.deleteBuffer(this.attributes[t].buffer),delete this.attributes[t]}};var H=class extends W{constructor(t,{attributes:i={}}={}){Object.assign(i,{position:{size:2,data:new Float32Array([-1,-1,3,-1,-1,3])},uv:{size:2,data:new Float32Array([0,0,2,0,0,2])}}),super(t,i)}};var Re=new Uint8Array(4);function we(e){return(e&e-1)===0}var He=1,O=class{constructor(t,{image:i,target:s=t.TEXTURE_2D,type:r=t.UNSIGNED_BYTE,format:n=t.RGBA,internalFormat:h=n,wrapS:l=t.CLAMP_TO_EDGE,wrapT:a=t.CLAMP_TO_EDGE,wrapR:c=t.CLAMP_TO_EDGE,generateMipmaps:f=s===(t.TEXTURE_2D||t.TEXTURE_CUBE_MAP),minFilter:d=f?t.NEAREST_MIPMAP_LINEAR:t.LINEAR,magFilter:g=t.LINEAR,premultiplyAlpha:p=!1,unpackAlignment:x=4,flipY:u=s==(t.TEXTURE_2D||t.TEXTURE_3D),anisotropy:o=0,level:E=0,width:T,height:_=T,length:m=1}={}){this.gl=t,this.id=He++,this.image=i,this.target=s,this.type=r,this.format=n,this.internalFormat=h,this.minFilter=d,this.magFilter=g,this.wrapS=l,this.wrapT=a,this.wrapR=c,this.generateMipmaps=f,this.premultiplyAlpha=p,this.unpackAlignment=x,this.flipY=u,this.anisotropy=Math.min(o,this.gl.renderer.parameters.maxAnisotropy),this.level=E,this.width=T,this.height=_,this.length=m,this.texture=this.gl.createTexture(),this.store={image:null},this.glState=this.gl.renderer.state,this.state={},this.state.minFilter=this.gl.NEAREST_MIPMAP_LINEAR,this.state.magFilter=this.gl.LINEAR,this.state.wrapS=this.gl.REPEAT,this.state.wrapT=this.gl.REPEAT,this.state.anisotropy=0}bind(){this.glState.textureUnits[this.glState.activeTextureUnit]!==this.id&&(this.gl.bindTexture(this.target,this.texture),this.glState.textureUnits[this.glState.activeTextureUnit]=this.id)}update(t=0){let i=!(this.image===this.store.image&&!this.needsUpdate);if((i||this.glState.textureUnits[t]!==this.id)&&(this.gl.renderer.activeTexture(t),this.bind()),!!i){if(this.needsUpdate=!1,this.flipY!==this.glState.flipY&&(this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL,this.flipY),this.glState.flipY=this.flipY),this.premultiplyAlpha!==this.glState.premultiplyAlpha&&(this.gl.pixelStorei(this.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,this.premultiplyAlpha),this.glState.premultiplyAlpha=this.premultiplyAlpha),this.unpackAlignment!==this.glState.unpackAlignment&&(this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT,this.unpackAlignment),this.glState.unpackAlignment=this.unpackAlignment),this.minFilter!==this.state.minFilter&&(this.gl.texParameteri(this.target,this.gl.TEXTURE_MIN_FILTER,this.minFilter),this.state.minFilter=this.minFilter),this.magFilter!==this.state.magFilter&&(this.gl.texParameteri(this.target,this.gl.TEXTURE_MAG_FILTER,this.magFilter),this.state.magFilter=this.magFilter),this.wrapS!==this.state.wrapS&&(this.gl.texParameteri(this.target,this.gl.TEXTURE_WRAP_S,this.wrapS),this.state.wrapS=this.wrapS),this.wrapT!==this.state.wrapT&&(this.gl.texParameteri(this.target,this.gl.TEXTURE_WRAP_T,this.wrapT),this.state.wrapT=this.wrapT),this.wrapR!==this.state.wrapR&&(this.gl.texParameteri(this.target,this.gl.TEXTURE_WRAP_R,this.wrapR),this.state.wrapR=this.wrapR),this.anisotropy&&this.anisotropy!==this.state.anisotropy&&(this.gl.texParameterf(this.target,this.gl.renderer.getExtension("EXT_texture_filter_anisotropic").TEXTURE_MAX_ANISOTROPY_EXT,this.anisotropy),this.state.anisotropy=this.anisotropy),this.image){if(this.image.width&&(this.width=this.image.width,this.height=this.image.height),this.target===this.gl.TEXTURE_CUBE_MAP)for(let s=0;s<6;s++)this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X+s,this.level,this.internalFormat,this.format,this.type,this.image[s]);else if(ArrayBuffer.isView(this.image))this.target===this.gl.TEXTURE_2D?this.gl.texImage2D(this.target,this.level,this.internalFormat,this.width,this.height,0,this.format,this.type,this.image):(this.target===this.gl.TEXTURE_2D_ARRAY||this.target===this.gl.TEXTURE_3D)&&this.gl.texImage3D(this.target,this.level,this.internalFormat,this.width,this.height,this.length,0,this.format,this.type,this.image);else if(this.image.isCompressedTexture)for(let s=0;s<this.image.length;s++)this.gl.compressedTexImage2D(this.target,s,this.internalFormat,this.image[s].width,this.image[s].height,0,this.image[s].data);else this.target===this.gl.TEXTURE_2D?this.gl.texImage2D(this.target,this.level,this.internalFormat,this.format,this.type,this.image):this.gl.texImage3D(this.target,this.level,this.internalFormat,this.width,this.height,this.length,0,this.format,this.type,this.image);this.generateMipmaps&&(!this.gl.renderer.isWebgl2&&(!we(this.image.width)||!we(this.image.height))?(this.generateMipmaps=!1,this.wrapS=this.wrapT=this.gl.CLAMP_TO_EDGE,this.minFilter=this.gl.LINEAR):this.gl.generateMipmap(this.target)),this.onUpdate&&this.onUpdate()}else if(this.target===this.gl.TEXTURE_CUBE_MAP)for(let s=0;s<6;s++)this.gl.texImage2D(this.gl.TEXTURE_CUBE_MAP_POSITIVE_X+s,0,this.gl.RGBA,1,1,0,this.gl.RGBA,this.gl.UNSIGNED_BYTE,Re);else this.width?this.target===this.gl.TEXTURE_2D?this.gl.texImage2D(this.target,this.level,this.internalFormat,this.width,this.height,0,this.format,this.type,null):this.gl.texImage3D(this.target,this.level,this.internalFormat,this.width,this.height,this.length,0,this.format,this.type,null):this.gl.texImage2D(this.target,0,this.gl.RGBA,1,1,0,this.gl.RGBA,this.gl.UNSIGNED_BYTE,Re);this.store.image=this.image}}};var Q=class{constructor(t,{width:i=t.canvas.width,height:s=t.canvas.height,target:r=t.FRAMEBUFFER,color:n=1,depth:h=!0,stencil:l=!1,depthTexture:a=!1,wrapS:c=t.CLAMP_TO_EDGE,wrapT:f=t.CLAMP_TO_EDGE,wrapR:d=t.CLAMP_TO_EDGE,minFilter:g=t.LINEAR,magFilter:p=g,type:x=t.UNSIGNED_BYTE,format:u=t.RGBA,internalFormat:o=u,unpackAlignment:E,premultiplyAlpha:T}={}){this.gl=t,this.width=i,this.height=s,this.depth=h,this.stencil=l,this.buffer=this.gl.createFramebuffer(),this.target=r,this.gl.renderer.bindFramebuffer(this),this.textures=[];let _=[];for(let m=0;m<n;m++)this.textures.push(new O(t,{width:i,height:s,wrapS:c,wrapT:f,wrapR:d,minFilter:g,magFilter:p,type:x,format:u,internalFormat:o,unpackAlignment:E,premultiplyAlpha:T,flipY:!1,generateMipmaps:!1})),this.textures[m].update(),this.gl.framebufferTexture2D(this.target,this.gl.COLOR_ATTACHMENT0+m,this.gl.TEXTURE_2D,this.textures[m].texture,0),_.push(this.gl.COLOR_ATTACHMENT0+m);_.length>1&&this.gl.renderer.drawBuffers(_),this.texture=this.textures[0],a&&(this.gl.renderer.isWebgl2||this.gl.renderer.getExtension("WEBGL_depth_texture"))?(this.depthTexture=new O(t,{width:i,height:s,minFilter:this.gl.NEAREST,magFilter:this.gl.NEAREST,format:this.stencil?this.gl.DEPTH_STENCIL:this.gl.DEPTH_COMPONENT,internalFormat:t.renderer.isWebgl2?this.stencil?this.gl.DEPTH24_STENCIL8:this.gl.DEPTH_COMPONENT16:this.gl.DEPTH_COMPONENT,type:this.stencil?this.gl.UNSIGNED_INT_24_8:this.gl.UNSIGNED_INT}),this.depthTexture.update(),this.gl.framebufferTexture2D(this.target,this.stencil?this.gl.DEPTH_STENCIL_ATTACHMENT:this.gl.DEPTH_ATTACHMENT,this.gl.TEXTURE_2D,this.depthTexture.texture,0)):(h&&!l&&(this.depthBuffer=this.gl.createRenderbuffer(),this.gl.bindRenderbuffer(this.gl.RENDERBUFFER,this.depthBuffer),this.gl.renderbufferStorage(this.gl.RENDERBUFFER,this.gl.DEPTH_COMPONENT16,i,s),this.gl.framebufferRenderbuffer(this.target,this.gl.DEPTH_ATTACHMENT,this.gl.RENDERBUFFER,this.depthBuffer)),l&&!h&&(this.stencilBuffer=this.gl.createRenderbuffer(),this.gl.bindRenderbuffer(this.gl.RENDERBUFFER,this.stencilBuffer),this.gl.renderbufferStorage(this.gl.RENDERBUFFER,this.gl.STENCIL_INDEX8,i,s),this.gl.framebufferRenderbuffer(this.target,this.gl.STENCIL_ATTACHMENT,this.gl.RENDERBUFFER,this.stencilBuffer)),h&&l&&(this.depthStencilBuffer=this.gl.createRenderbuffer(),this.gl.bindRenderbuffer(this.gl.RENDERBUFFER,this.depthStencilBuffer),this.gl.renderbufferStorage(this.gl.RENDERBUFFER,this.gl.DEPTH_STENCIL,i,s),this.gl.framebufferRenderbuffer(this.target,this.gl.DEPTH_STENCIL_ATTACHMENT,this.gl.RENDERBUFFER,this.depthStencilBuffer))),this.gl.renderer.bindFramebuffer({target:this.target})}setSize(t,i){if(!(this.width===t&&this.height===i)){this.width=t,this.height=i,this.gl.renderer.bindFramebuffer(this);for(let s=0;s<this.textures.length;s++)this.textures[s].width=t,this.textures[s].height=i,this.textures[s].needsUpdate=!0,this.textures[s].update(),this.gl.framebufferTexture2D(this.target,this.gl.COLOR_ATTACHMENT0+s,this.gl.TEXTURE_2D,this.textures[s].texture,0);this.depthTexture?(this.depthTexture.width=t,this.depthTexture.height=i,this.depthTexture.needsUpdate=!0,this.depthTexture.update(),this.gl.framebufferTexture2D(this.target,this.gl.DEPTH_ATTACHMENT,this.gl.TEXTURE_2D,this.depthTexture.texture,0)):(this.depthBuffer&&(this.gl.bindRenderbuffer(this.gl.RENDERBUFFER,this.depthBuffer),this.gl.renderbufferStorage(this.gl.RENDERBUFFER,this.gl.DEPTH_COMPONENT16,t,i)),this.stencilBuffer&&(this.gl.bindRenderbuffer(this.gl.RENDERBUFFER,this.stencilBuffer),this.gl.renderbufferStorage(this.gl.RENDERBUFFER,this.gl.STENCIL_INDEX8,t,i)),this.depthStencilBuffer&&(this.gl.bindRenderbuffer(this.gl.RENDERBUFFER,this.depthStencilBuffer),this.gl.renderbufferStorage(this.gl.RENDERBUFFER,this.gl.DEPTH_STENCIL,t,i))),this.gl.renderer.bindFramebuffer({target:this.target})}}};return ze(Qe);})();
+    </script>
+    <script>
+/* MicroSlats (React Bits, variante JS-CSS) portado a JS vanilla para NEFROTRON.
+   Fuente: https://reactbits.dev/r/MicroSlats-JS-CSS.json  -  usa OGL (Unlicense), incluido arriba. */
+(function () {
+  const { Renderer, Program, Mesh, Triangle, RenderTarget, Texture } = window.OGL;
+
+const SWELL_PRESETS = {
+  swell: {
+    scale: 1.5,
+    speed: 0.6,
+    direction: 250,
+    chop: 0.55,
+    stretch: 0,
+    glint: 0.7,
+    contrast: 1.25,
+    perspective: 0.55,
+    fog: 0.55
+  },
+  tide: {
+    scale: 1.3,
+    speed: 0.5,
+    direction: 262,
+    chop: 0.2,
+    stretch: 0.12,
+    glint: 0.45,
+    contrast: 1.1,
+    perspective: 0.5,
+    fog: 0.4
+  },
+  storm: {
+    scale: 0.55,
+    speed: 1.6,
+    direction: 236,
+    chop: 1,
+    stretch: 0.3,
+    glint: 1.3,
+    contrast: 1.8,
+    perspective: 0.8,
+    fog: 0.35
+  },
+  signal: {
+    scale: 0.85,
+    speed: 1.2,
+    direction: 180,
+    chop: 0.6,
+    stretch: 0.85,
+    glint: 0.25,
+    contrast: 1.2,
+    perspective: 0,
+    fog: 0
+  }
+};
+
+const FLUID_SIZE = 96;
+const PRESSURE_STEPS = 16;
+const SPLAT_FORCE = 6900;
+const SPLASH_JETS = 3;
+const PIXEL_BUDGET = 4.5e6;
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const parseColor = (value, fallback) => {
+  try {
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) return fallback;
+    ctx.fillStyle = '#000000';
+    ctx.fillStyle = value;
+    const resolved = ctx.fillStyle;
+    if (resolved.startsWith('#')) {
+      const n = parseInt(resolved.slice(1), 16);
+      return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, 1];
+    }
+    const parts = resolved.match(/[\d.]+/g);
+    if (!parts || parts.length < 3) return fallback;
+    return [Number(parts[0]) / 255, Number(parts[1]) / 255, Number(parts[2]) / 255, parts[3] ? Number(parts[3]) : 1];
+  } catch {
+    return fallback;
+  }
+};
+
+const passVertex = `#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
+
+const fluidVertex = `#version 300 es
+in vec2 position;
+uniform vec2 uTexel;
+out vec2 vUv;
+out vec2 vL;
+out vec2 vR;
+out vec2 vT;
+out vec2 vB;
+void main() {
+  vUv = position * 0.5 + 0.5;
+  vL = vUv - vec2(uTexel.x, 0.0);
+  vR = vUv + vec2(uTexel.x, 0.0);
+  vT = vUv + vec2(0.0, uTexel.y);
+  vB = vUv - vec2(0.0, uTexel.y);
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
+
+const fluidHead = `#version 300 es
+precision highp float;
+in vec2 vUv;
+in vec2 vL;
+in vec2 vR;
+in vec2 vT;
+in vec2 vB;
+out vec4 fragColor;
+`;
+
+const splatFragment = `${fluidHead}
+uniform sampler2D uTarget;
+uniform float uAspect;
+uniform vec2 uPoint;
+uniform vec3 uValue;
+uniform float uRadius;
+void main() {
+  vec2 offset = vUv - uPoint;
+  offset.x *= uAspect;
+  float falloff = exp(-dot(offset, offset) / uRadius);
+  fragColor = vec4(texture(uTarget, vUv).xyz + uValue * falloff, 1.0);
+}
+`;
+
+const curlFragment = `${fluidHead}
+uniform sampler2D uVelocity;
+void main() {
+  float left = texture(uVelocity, vL).y;
+  float right = texture(uVelocity, vR).y;
+  float top = texture(uVelocity, vT).x;
+  float bottom = texture(uVelocity, vB).x;
+  fragColor = vec4(0.5 * (right - left - top + bottom), 0.0, 0.0, 1.0);
+}
+`;
+
+const vorticityFragment = `${fluidHead}
+uniform sampler2D uVelocity;
+uniform sampler2D uCurl;
+uniform float uSwirl;
+uniform float uDt;
+void main() {
+  float left = texture(uCurl, vL).x;
+  float right = texture(uCurl, vR).x;
+  float top = texture(uCurl, vT).x;
+  float bottom = texture(uCurl, vB).x;
+  float middle = texture(uCurl, vUv).x;
+  vec2 force = 0.5 * vec2(abs(top) - abs(bottom), abs(right) - abs(left));
+  force = force / (length(force) + 0.0001) * uSwirl * middle;
+  force.y = -force.y;
+  vec2 velocity = texture(uVelocity, vUv).xy + force * uDt;
+  fragColor = vec4(clamp(velocity, -1000.0, 1000.0), 0.0, 1.0);
+}
+`;
+
+const divergenceFragment = `${fluidHead}
+uniform sampler2D uVelocity;
+void main() {
+  vec2 middle = texture(uVelocity, vUv).xy;
+  float left = vL.x < 0.0 ? -middle.x : texture(uVelocity, vL).x;
+  float right = vR.x > 1.0 ? -middle.x : texture(uVelocity, vR).x;
+  float top = vT.y > 1.0 ? -middle.y : texture(uVelocity, vT).y;
+  float bottom = vB.y < 0.0 ? -middle.y : texture(uVelocity, vB).y;
+  fragColor = vec4(0.5 * (right - left + top - bottom), 0.0, 0.0, 1.0);
+}
+`;
+
+const pressureFragment = `${fluidHead}
+uniform sampler2D uPressure;
+uniform sampler2D uDivergence;
+void main() {
+  float left = texture(uPressure, vL).x;
+  float right = texture(uPressure, vR).x;
+  float top = texture(uPressure, vT).x;
+  float bottom = texture(uPressure, vB).x;
+  float divergence = texture(uDivergence, vUv).x;
+  fragColor = vec4((left + right + top + bottom - divergence) * 0.25, 0.0, 0.0, 1.0);
+}
+`;
+
+const projectFragment = `${fluidHead}
+uniform sampler2D uPressure;
+uniform sampler2D uVelocity;
+void main() {
+  float left = texture(uPressure, vL).x;
+  float right = texture(uPressure, vR).x;
+  float top = texture(uPressure, vT).x;
+  float bottom = texture(uPressure, vB).x;
+  vec2 velocity = texture(uVelocity, vUv).xy - vec2(right - left, top - bottom);
+  fragColor = vec4(velocity, 0.0, 1.0);
+}
+`;
+
+const advectFragment = `${fluidHead}
+uniform sampler2D uVelocity;
+uniform sampler2D uSource;
+uniform vec2 uTexel;
+uniform float uDt;
+uniform float uFade;
+void main() {
+  vec2 from = vUv - uDt * texture(uVelocity, vUv).xy * uTexel;
+  fragColor = texture(uSource, from) / (1.0 + uFade * uDt);
+}
+`;
+
+const scaleFragment = `${fluidHead}
+uniform sampler2D uSource;
+uniform float uValue;
+void main() {
+  fragColor = texture(uSource, vUv) * uValue;
+}
+`;
+
+const fieldFragment = `#version 300 es
+precision highp float;
+uniform vec2 uSize;
+uniform vec4 uGrid;
+uniform vec2 uOrigin;
+uniform vec2 uSlat;
+uniform float uTime;
+uniform float uScale;
+uniform float uDirection;
+uniform float uChop;
+uniform float uStretch;
+uniform float uGlint;
+uniform float uContrast;
+uniform float uPerspective;
+uniform float uFog;
+uniform float uIntro;
+uniform sampler2D tVelocity;
+uniform sampler2D tInk;
+uniform vec2 uFluidTexel;
+uniform float uFluid;
+uniform float uInk;
+uniform float uLean;
+out vec4 fragColor;
+
+const float TURN[4] = float[4](0.0, -0.95, 0.78, 1.62);
+const float LENGTH[4] = float[4](2.6, 1.7, 1.12, 0.76);
+const float HEIGHT[4] = float[4](1.0, 0.75, 0.5, 0.3);
+const float SHIFT[4] = float[4](0.0, 2.3, 4.1, 1.1);
+
+void main() {
+  vec2 cell = floor(gl_FragCoord.xy);
+  float row = uGrid.y - 1.0 - cell.y;
+  vec2 center = uOrigin + vec2(cell.x, row) * uGrid.zw + uSlat * 0.5;
+  float v = clamp(center.y / uSize.y, 0.0, 1.0);
+
+  vec2 flow = vec2(0.0);
+  float ink = 0.0;
+  if (uFluid > 0.5) {
+    vec2 fluidUv = clamp(vec2(center.x / uSize.x, 1.0 - center.y / uSize.y), 0.0, 1.0);
+    flow = texture(tVelocity, fluidUv).xy * uFluidTexel * uSize;
+    ink = texture(tInk, fluidUv).x;
+  }
+
+  float horizon = mix(8.0, 0.5, uPerspective);
+  float depth = (1.0 + horizon) / (v + horizon);
+  vec2 world = vec2((center.x - uSize.x * 0.5) / uSize.y * depth, (depth - 1.0) * horizon * 2.2);
+  world -= flow * 0.00018 * depth;
+  world /= max(uScale, 0.05);
+
+  float meander = 0.55 * sin(dot(world, vec2(0.23, 0.41)) * 0.9 + uTime * 0.13)
+    + 0.3 * sin(dot(world, vec2(-0.37, 0.19)) * 1.4 - uTime * 0.09);
+
+  float steep = uChop * 0.45;
+  float height = 0.0;
+  float total = 0.0;
+  for (int i = 0; i < 4; i++) {
+    float angle = uDirection + TURN[i];
+    vec2 heading = vec2(cos(angle), sin(angle));
+    float k = 6.2831853 / LENGTH[i];
+    float omega = sqrt(9.81 * k) * 0.35;
+    float theta = k * dot(world, heading) - omega * uTime + SHIFT[i] + meander * (0.6 + 0.3 * float(i));
+    height += HEIGHT[i] * (cos(theta) + steep * cos(2.0 * theta));
+    total += HEIGHT[i] * (1.0 + steep);
+  }
+  float level = clamp(0.5 + 0.5 * height / (total * 0.85), 0.0, 1.0);
+  float crest = smoothstep(0.6, 1.0, level);
+  float glint = crest * crest * uGlint;
+
+  float haze = mix(1.0, 1.0 - uFog, pow(1.0 - v, 1.4));
+  float light = (pow(level, uContrast) + glint * 0.8) * haze;
+  float glow = 1.0 - exp(-max(ink, 0.0) * uInk * 1.6);
+  light = 1.0 - (1.0 - clamp(light, 0.0, 1.0)) * (1.0 - glow);
+
+  float front = uIntro * 1.35;
+  float reveal = 1.0 - smoothstep(front - 0.35, front, v);
+  float sweep = exp(-pow((v - front + 0.22) / 0.07, 2.0)) * (1.0 - uIntro);
+  light = (light + sweep * 0.8) * reveal;
+  light = max(light, 0.045 * reveal);
+  float span = mix(1.0 - uStretch, 1.0, level) + glow * 0.3;
+  span = clamp(span, 0.08, 1.0) * mix(0.1, 1.0, reveal);
+  float tint = clamp(max(glint * 1.4, glow * 0.9) + sweep, 0.0, 1.0);
+  float lean = clamp(flow.x / 1400.0, -1.0, 1.0) * uLean * reveal;
+
+  fragColor = vec4(clamp(light, 0.0, 1.0), span, tint, 0.5 + 0.5 * lean);
+}
+`;
+
+const slatFragment = `#version 300 es
+precision highp float;
+uniform sampler2D tField;
+uniform vec2 uSize;
+uniform float uDpr;
+uniform vec4 uGrid;
+uniform vec2 uOrigin;
+uniform vec2 uSlat;
+uniform float uRound;
+uniform float uTilt;
+uniform vec3 uColor;
+uniform vec3 uGlintColor;
+uniform vec4 uBackground;
+out vec4 fragColor;
+
+float pill(vec2 p, vec2 b, float r) {
+  vec2 q = abs(p) - b + r;
+  return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+
+void main() {
+  vec2 p = vec2(gl_FragCoord.x, uSize.y * uDpr - gl_FragCoord.y) / uDpr;
+  vec2 local = p - uOrigin;
+  vec2 cell = floor(local / uGrid.zw);
+  vec4 background = vec4(uBackground.rgb * uBackground.a, uBackground.a);
+  vec4 slat = vec4(0.0);
+  int reach = uTilt > 0.0 ? 1 : 0;
+  for (int dx = -1; dx <= 1; dx++) {
+    if (abs(dx) > reach) continue;
+    vec2 neighbour = cell + vec2(float(dx), 0.0);
+    if (neighbour.x < 0.0 || neighbour.y < 0.0 || neighbour.x >= uGrid.x || neighbour.y >= uGrid.y) continue;
+    vec4 field = texelFetch(tField, ivec2(int(neighbour.x), int(uGrid.y - 1.0 - neighbour.y)), 0);
+    vec2 offset = local - neighbour * uGrid.zw - uSlat * 0.5;
+    float angle = (field.a - 0.5) * 2.0 * uTilt;
+    float c = cos(angle);
+    float s = sin(angle);
+    vec2 turned = vec2(c * offset.x + s * offset.y, c * offset.y - s * offset.x);
+    vec2 halfSize = vec2(uSlat.x * 0.5, uSlat.y * 0.5 * field.g);
+    float radius = uRound * min(halfSize.x, halfSize.y);
+    float alpha = clamp(0.5 - pill(turned, halfSize, radius) * uDpr, 0.0, 1.0) * field.r;
+    if (alpha > slat.a) slat = vec4(mix(uColor, uGlintColor, field.b) * alpha, alpha);
+  }
+  fragColor = slat + background * (1.0 - slat.a);
+}
+`;
+
+
+const DEFAULTS = {
+  preset: 'swell', color: '#A855F7', glintColor: '#ffffff', backgroundColor: '#000000',
+  slatWidth: 10, slatHeight: 25, gap: 3, roundness: 0.75,
+  interactive: true, cursorStrength: 1, cursorSize: 40, swirl: 0, trail: 1.4, lean: 0,
+  intro: true, introDuration: 1.5, paused: false
+};
+const PRESET_KEYS = ['scale','speed','direction','chop','stretch','glint','contrast','perspective','fog'];
+
+const resolve = opts => {
+  const o = { ...DEFAULTS, ...opts };
+  const base = SWELL_PRESETS[o.preset] || SWELL_PRESETS.swell;
+  const s = { ...o };
+  PRESET_KEYS.forEach(k => { if (o[k] === undefined || o[k] === null) s[k] = base[k]; });
+  s.color = parseColor(o.color, [0.66, 0.33, 0.97, 1]);
+  s.glintColor = parseColor(o.glintColor, [1, 1, 1, 1]);
+  s.backgroundColor = parseColor(o.backgroundColor, [0, 0, 0, 1]);
+  return s;
+};
+
+function createMicroSlats(container, options) {
+    let current = { ...options };
+    const settingsRef = { current: resolve(current) };
+
+    const renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: false, depth: false });
+    const gl = renderer.gl;
+    if (!renderer.isWebgl2) {
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      return null;
+    }
+    gl.clearColor(0, 0, 0, 0);
+    const canvas = gl.canvas;
+    canvas.style.display = 'block';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.setAttribute('aria-hidden', 'true');
+    container.appendChild(canvas);
+
+    const geometry = new Triangle(gl);
+    const blank = new Texture(gl);
+    const floatTargets = !!(
+      gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float')
+    );
+
+    const dispose = target => {
+      gl.deleteFramebuffer(target.buffer);
+      gl.deleteTexture(target.texture.texture);
+    };
+
+    let fieldTarget = new RenderTarget(gl, {
+      width: 1,
+      height: 1,
+      depth: false,
+      minFilter: gl.NEAREST,
+      magFilter: gl.NEAREST
+    });
+
+    const fieldUniforms = {
+      uSize: { value: [1, 1] },
+      uGrid: { value: [1, 1, 1, 1] },
+      uOrigin: { value: [0, 0] },
+      uSlat: { value: [1, 1] },
+      uTime: { value: 0 },
+      uScale: { value: 1 },
+      uDirection: { value: 0 },
+      uChop: { value: 0.5 },
+      uStretch: { value: 0.3 },
+      uGlint: { value: 1 },
+      uContrast: { value: 1 },
+      uPerspective: { value: 0.7 },
+      uFog: { value: 0.5 },
+      uIntro: { value: 0 },
+      tVelocity: { value: blank },
+      tInk: { value: blank },
+      uFluidTexel: { value: [1, 1] },
+      uFluid: { value: 0 },
+      uInk: { value: 1 },
+      uLean: { value: 0.5 }
+    };
+    const fieldMesh = new Mesh(gl, {
+      geometry,
+      program: new Program(gl, {
+        vertex: passVertex,
+        fragment: fieldFragment,
+        uniforms: fieldUniforms,
+        depthTest: false,
+        depthWrite: false
+      })
+    });
+
+    const slatUniforms = {
+      tField: { value: fieldTarget.texture },
+      uSize: { value: [1, 1] },
+      uDpr: { value: 1 },
+      uGrid: { value: [1, 1, 1, 1] },
+      uOrigin: { value: [0, 0] },
+      uSlat: { value: [1, 1] },
+      uRound: { value: 1 },
+      uTilt: { value: 0 },
+      uColor: { value: [1, 1, 1] },
+      uGlintColor: { value: [1, 1, 1] },
+      uBackground: { value: [0, 0, 0, 1] }
+    };
+    const slatMesh = new Mesh(gl, {
+      geometry,
+      program: new Program(gl, {
+        vertex: passVertex,
+        fragment: slatFragment,
+        uniforms: slatUniforms,
+        depthTest: false,
+        depthWrite: false
+      })
+    });
+
+    const fluidTexel = { value: [1, 1] };
+    const fluidPass = (fragment, uniforms) =>
+      new Mesh(gl, {
+        geometry,
+        program: new Program(gl, {
+          vertex: fluidVertex,
+          fragment,
+          uniforms: { uTexel: fluidTexel, ...uniforms },
+          depthTest: false,
+          depthWrite: false
+        })
+      });
+    const splatPass = fluidPass(splatFragment, {
+      uTarget: { value: blank },
+      uAspect: { value: 1 },
+      uPoint: { value: [0, 0] },
+      uValue: { value: [0, 0, 0] },
+      uRadius: { value: 0.01 }
+    });
+    const curlPass = fluidPass(curlFragment, { uVelocity: { value: blank } });
+    const vorticityPass = fluidPass(vorticityFragment, {
+      uVelocity: { value: blank },
+      uCurl: { value: blank },
+      uSwirl: { value: 20 },
+      uDt: { value: 0.016 }
+    });
+    const divergencePass = fluidPass(divergenceFragment, { uVelocity: { value: blank } });
+    const pressurePass = fluidPass(pressureFragment, { uPressure: { value: blank }, uDivergence: { value: blank } });
+    const projectPass = fluidPass(projectFragment, { uPressure: { value: blank }, uVelocity: { value: blank } });
+    const advectPass = fluidPass(advectFragment, {
+      uVelocity: { value: blank },
+      uSource: { value: blank },
+      uDt: { value: 0.016 },
+      uFade: { value: 1 }
+    });
+    const scalePass = fluidPass(scaleFragment, { uSource: { value: blank }, uValue: { value: 0 } });
+
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+    let width = 1;
+    let height = 1;
+    let raf = 0;
+    let last = performance.now();
+    let time = 0;
+    let introClock = 0;
+    let visible = true;
+    let alive = true;
+    let fluid = null;
+    let fluidUntil = 0;
+    let fluidDirty = false;
+    let splashTurn = 0;
+    const splats = [];
+    const pointer = { x: 0, y: 0, tracked: false };
+
+    const run = (mesh, target) => renderer.render({ scene: mesh, target, clear: false });
+
+    const floatTarget = (w, h) =>
+      new RenderTarget(gl, {
+        width: w,
+        height: h,
+        depth: false,
+        type: gl.HALF_FLOAT,
+        format: gl.RGBA,
+        internalFormat: gl.RGBA16F,
+        minFilter: gl.LINEAR,
+        magFilter: gl.LINEAR
+      });
+
+    const swapPair = (w, h) => ({
+      read: floatTarget(w, h),
+      write: floatTarget(w, h),
+      swap() {
+        const next = this.read;
+        this.read = this.write;
+        this.write = next;
+      }
+    });
+
+    const disposeFluid = () => {
+      if (!fluid) return;
+      [fluid.velocity, fluid.ink, fluid.pressure].forEach(pair => {
+        dispose(pair.read);
+        dispose(pair.write);
+      });
+      dispose(fluid.divergence);
+      dispose(fluid.curl);
+      fluid = null;
+    };
+
+    const buildFluid = () => {
+      if (!floatTargets) return;
+      const aspect = width / height;
+      const w = Math.max(8, Math.round(aspect >= 1 ? FLUID_SIZE * aspect : FLUID_SIZE));
+      const h = Math.max(8, Math.round(aspect >= 1 ? FLUID_SIZE : FLUID_SIZE / aspect));
+      if (fluid && fluid.width === w && fluid.height === h) return;
+      disposeFluid();
+      fluid = {
+        width: w,
+        height: h,
+        velocity: swapPair(w, h),
+        ink: swapPair(w, h),
+        pressure: swapPair(w, h),
+        divergence: floatTarget(w, h),
+        curl: floatTarget(w, h)
+      };
+      fluidTexel.value = [1 / w, 1 / h];
+    };
+
+    let resizePending = false;
+    const applyResize = () => {
+      width = Math.max(1, container.clientWidth);
+      height = Math.max(1, container.clientHeight);
+      renderer.dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(PIXEL_BUDGET / (width * height)));
+      renderer.setSize(width, height);
+      buildFluid();
+    };
+
+    const resize = () => {
+      resizePending = true;
+      start();
+    };
+
+    const layout = s => {
+      const slatW = clamp(s.slatWidth, 1, 64);
+      const slatH = clamp(s.slatHeight, 2, 240);
+      const gapSize = clamp(s.gap, 0, 64);
+      const pitchX = slatW + gapSize;
+      const pitchY = slatH + gapSize;
+      const cols = Math.min(2048, Math.ceil((width + gapSize) / pitchX) + 1);
+      const rows = Math.min(2048, Math.ceil((height + gapSize) / pitchY) + 1);
+      const originX = (width - (cols * pitchX - gapSize)) / 2;
+      const originY = (height - (rows * pitchY - gapSize)) / 2;
+      if (fieldTarget.width !== cols || fieldTarget.height !== rows) {
+        dispose(fieldTarget);
+        fieldTarget = new RenderTarget(gl, {
+          width: cols,
+          height: rows,
+          depth: false,
+          minFilter: gl.NEAREST,
+          magFilter: gl.NEAREST
+        });
+        slatUniforms.tField.value = fieldTarget.texture;
+      }
+      const tilt = Math.min(0.42, Math.asin(clamp((pitchX * 1.5 - slatW * 0.5) / (slatH * 0.5), 0, 1)));
+      return { slatW, slatH, tilt, grid: [cols, rows, pitchX, pitchY], origin: [originX, originY] };
+    };
+
+    const splat = (pair, point, value, radius) => {
+      const u = splatPass.program.uniforms;
+      u.uTarget.value = pair.read.texture;
+      u.uAspect.value = width / height;
+      u.uPoint.value = point;
+      u.uValue.value = value;
+      u.uRadius.value = radius;
+      run(splatPass, pair.write);
+      pair.swap();
+    };
+
+    const stepFluid = (f, dt, s) => {
+      if (s.swirl > 0) {
+        curlPass.program.uniforms.uVelocity.value = f.velocity.read.texture;
+        run(curlPass, f.curl);
+
+        const vorticity = vorticityPass.program.uniforms;
+        vorticity.uVelocity.value = f.velocity.read.texture;
+        vorticity.uCurl.value = f.curl.texture;
+        vorticity.uSwirl.value = clamp(s.swirl, 0, 2) * 40;
+        vorticity.uDt.value = dt;
+        run(vorticityPass, f.velocity.write);
+        f.velocity.swap();
+      }
+
+      divergencePass.program.uniforms.uVelocity.value = f.velocity.read.texture;
+      run(divergencePass, f.divergence);
+
+      scalePass.program.uniforms.uSource.value = f.pressure.read.texture;
+      scalePass.program.uniforms.uValue.value = 0.8;
+      run(scalePass, f.pressure.write);
+      f.pressure.swap();
+
+      pressurePass.program.uniforms.uDivergence.value = f.divergence.texture;
+      for (let i = 0; i < PRESSURE_STEPS; i++) {
+        pressurePass.program.uniforms.uPressure.value = f.pressure.read.texture;
+        run(pressurePass, f.pressure.write);
+        f.pressure.swap();
+      }
+
+      projectPass.program.uniforms.uPressure.value = f.pressure.read.texture;
+      projectPass.program.uniforms.uVelocity.value = f.velocity.read.texture;
+      run(projectPass, f.velocity.write);
+      f.velocity.swap();
+
+      const fade = 1 / clamp(s.trail, 0.1, 10);
+      const advect = advectPass.program.uniforms;
+      advect.uDt.value = dt;
+      advect.uVelocity.value = f.velocity.read.texture;
+      advect.uSource.value = f.velocity.read.texture;
+      advect.uFade.value = fade * 1.4;
+      run(advectPass, f.velocity.write);
+      f.velocity.swap();
+
+      advect.uVelocity.value = f.velocity.read.texture;
+      advect.uSource.value = f.ink.read.texture;
+      advect.uFade.value = fade;
+      run(advectPass, f.ink.write);
+      f.ink.swap();
+    };
+
+    const clearFluid = f => {
+      scalePass.program.uniforms.uValue.value = 0;
+      [f.velocity, f.ink, f.pressure].forEach(pair => {
+        scalePass.program.uniforms.uSource.value = pair.read.texture;
+        run(scalePass, pair.write);
+        pair.swap();
+      });
+    };
+
+    const frame = now => {
+      raf = 0;
+      if (resizePending) {
+        resizePending = false;
+        applyResize();
+      }
+      if (!alive) return;
+      const s = settingsRef.current;
+      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+      last = now;
+      if (!s) return;
+
+      if (!s.paused && !reducedMotion) time += dt * s.speed;
+      introClock = s.intro && !reducedMotion ? introClock + dt / Math.max(0.2, s.introDuration) : 1;
+      const introLinear = Math.min(introClock, 1);
+      const introEase =
+        introLinear < 0.5 ? 4 * introLinear * introLinear * introLinear : 1 - Math.pow(-2 * introLinear + 2, 3) / 2;
+
+      if (fluid && splats.length) {
+        const radius = Math.pow(clamp(s.cursorSize, 4, 600) / height, 2) * 0.35;
+        const aspect = width / height;
+        for (const [u, v, du, dv, turn] of splats) {
+          if (turn === null) {
+            splat(fluid.velocity, [u, v], [du * SPLAT_FORCE, dv * SPLAT_FORCE, 0], radius);
+            splat(fluid.ink, [u, v], [0.13, 0, 0], radius);
+            continue;
+          }
+          const jet = radius * 0.55;
+          const reach = Math.sqrt(jet * 0.5) * 1.9;
+          const push = SPLAT_FORCE * 0.08;
+          for (let i = 0; i < SPLASH_JETS; i++) {
+            const angle = turn + (i / SPLASH_JETS) * Math.PI * 2;
+            const dx = Math.cos(angle);
+            const dy = Math.sin(angle);
+            const point = [u + (dx * reach) / aspect, v + dy * reach];
+            const spin = [(dx - dy) * Math.SQRT1_2 * push, (dy + dx) * Math.SQRT1_2 * push, 0];
+            splat(fluid.velocity, point, spin, jet);
+            splat(fluid.ink, point, [0.75, 0, 0], jet);
+          }
+          splat(fluid.ink, [u, v], [0.45, 0, 0], radius);
+        }
+        splats.length = 0;
+        fluidDirty = true;
+      }
+      const fluidActive = fluid !== null && now < fluidUntil;
+      if (fluid) {
+        if (fluidActive) stepFluid(fluid, Math.min(Math.max(dt, 1 / 240), 1 / 30), s);
+        else if (fluidDirty) {
+          clearFluid(fluid);
+          fluidDirty = false;
+        }
+      }
+
+      const grid = layout(s);
+
+      fieldUniforms.uSize.value = [width, height];
+      fieldUniforms.uGrid.value = grid.grid;
+      fieldUniforms.uOrigin.value = grid.origin;
+      fieldUniforms.uSlat.value = [grid.slatW, grid.slatH];
+      fieldUniforms.uTime.value = time;
+      fieldUniforms.uScale.value = s.scale;
+      fieldUniforms.uDirection.value = (s.direction * Math.PI) / 180;
+      fieldUniforms.uChop.value = clamp(s.chop, 0, 1.5);
+      fieldUniforms.uStretch.value = clamp(s.stretch, 0, 0.95);
+      fieldUniforms.uGlint.value = Math.max(0, s.glint);
+      fieldUniforms.uContrast.value = clamp(s.contrast, 0.2, 4);
+      fieldUniforms.uPerspective.value = clamp(s.perspective, 0, 1);
+      fieldUniforms.uFog.value = clamp(s.fog, 0, 1);
+      fieldUniforms.uIntro.value = introEase;
+      fieldUniforms.uFluid.value = fluidActive ? 1 : 0;
+      fieldUniforms.tVelocity.value = fluid ? fluid.velocity.read.texture : blank;
+      fieldUniforms.tInk.value = fluid ? fluid.ink.read.texture : blank;
+      fieldUniforms.uFluidTexel.value = fluidTexel.value;
+      fieldUniforms.uInk.value = clamp(s.cursorStrength, 0, 3);
+      fieldUniforms.uLean.value = clamp(s.lean, 0, 1);
+      renderer.render({ scene: fieldMesh, target: fieldTarget });
+
+      slatUniforms.uSize.value = [width, height];
+      slatUniforms.uDpr.value = renderer.dpr;
+      slatUniforms.uGrid.value = grid.grid;
+      slatUniforms.uOrigin.value = grid.origin;
+      slatUniforms.uSlat.value = [grid.slatW, grid.slatH];
+      slatUniforms.uRound.value = clamp(s.roundness, 0, 1);
+      slatUniforms.uTilt.value = fluidActive && s.lean > 0 ? grid.tilt : 0;
+      slatUniforms.uColor.value = s.color.slice(0, 3);
+      slatUniforms.uGlintColor.value = s.glintColor.slice(0, 3);
+      slatUniforms.uBackground.value = s.backgroundColor;
+      renderer.render({ scene: slatMesh });
+
+      const moving = (!s.paused && !reducedMotion && s.speed !== 0) || introClock < 1;
+      if (visible && (moving || fluidActive || fluidDirty)) raf = requestAnimationFrame(frame);
+    };
+
+    const start = () => {
+      if (raf || !visible || !alive) return;
+      last = performance.now();
+      raf = requestAnimationFrame(frame);
+    };
+
+    const locate = e => {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const w = Math.max(1, rect.width);
+      const h = Math.max(1, rect.height);
+      return { x, y, u: x / w, v: 1 - y / h, h, inside: x >= 0 && y >= 0 && x <= w && y <= h };
+    };
+
+    const queue = (u, v, du, dv, turn) => {
+      if (splats.length > 32) splats.shift();
+      splats.push([u, v, du, dv, turn]);
+      const s = settingsRef.current;
+      fluidUntil = performance.now() + Math.max(1.5, (s ? s.trail : 1.4) * 5) * 1000;
+      start();
+    };
+
+    const onPointerMove = e => {
+      const s = settingsRef.current;
+      const spot = locate(e);
+      if (!fluid || !s || !s.interactive || reducedMotion || !spot.inside) {
+        pointer.tracked = false;
+        return;
+      }
+      if (pointer.tracked && (spot.x !== pointer.x || spot.y !== pointer.y)) {
+        queue(spot.u, spot.v, (spot.x - pointer.x) / spot.h, (pointer.y - spot.y) / spot.h, null);
+      }
+      pointer.x = spot.x;
+      pointer.y = spot.y;
+      pointer.tracked = true;
+    };
+
+    const onPointerDown = e => {
+      const s = settingsRef.current;
+      const spot = locate(e);
+      if (!fluid || !s || !s.interactive || reducedMotion || !spot.inside) return;
+      splashTurn += 2.39996;
+      queue(spot.u, spot.v, 0, 0, splashTurn);
+    };
+
+    const onPointerLeave = () => {
+      pointer.tracked = false;
+    };
+
+    const onPointerOut = e => {
+      if (!e.relatedTarget) onPointerLeave();
+    };
+
+    const onVisibility = () => {
+      if (!document.hidden) start();
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { passive: true });
+    window.addEventListener('pointerout', onPointerOut, { passive: true });
+    window.addEventListener('blur', onPointerLeave);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(container);
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      start();
+    });
+    intersectionObserver.observe(container);
+
+        resize();
+
+    const destroy = () => {
+      alive = false;
+      visible = false;
+      cancelAnimationFrame(raf);
+      resizeObserver.disconnect();
+      intersectionObserver.disconnect();
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerout', onPointerOut);
+      window.removeEventListener('blur', onPointerLeave);
+      document.removeEventListener('visibilitychange', onVisibility);
+      disposeFluid();
+      dispose(fieldTarget);
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    };
+
+    return {
+      update(partial) {
+        settingsRef.current = resolve({ ...current, ...partial });
+        current = { ...current, ...partial };
+        start();
+      },
+      destroy
+    };
+}
+
+  window.createMicroSlats = createMicroSlats;
+})();
+
+    // Configuración de Kevin para el fondo MicroSlats
+    (function () {
+        const el = document.getElementById('microSlatsBg');
+        if (!el || !window.createMicroSlats) return;
+        try {
+            window.nefroBg = window.createMicroSlats(el, {
+                preset: 'swell',
+                color: '#121e52',
+                glintColor: '#437fbc',
+                backgroundColor: document.documentElement.classList.contains('dark') ? '#000000' : '#F2F2F7',
+                slatWidth: 7,
+                slatHeight: 25,
+                gap: 3,
+                roundness: 0.75,
+                interactive: true,
+                cursorStrength: 1,
+                cursorSize: 60,
+                swirl: 0,
+                trail: 1.4,
+                lean: 0,
+                intro: true,
+                fog: 1
+            });
+        } catch (err) { console.warn('MicroSlats no pudo iniciar:', err); }
+    })();
+    </script>
+</body>
+</html>
